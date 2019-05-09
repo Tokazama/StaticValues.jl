@@ -1,26 +1,18 @@
 module StaticValues
 
-import Base: TwicePrecision, @pure, abs, abs2, isless, max, min, div, eltype, tail
-import Base: ==, +, -, *, /, ^, <, ~, &, |
+import Base: TwicePrecision, promote_rule
+import Base: ==, +, -, *, /, ^, <, ~, :, abs, abs2, isless, max, min, div, rem
+import Base: eltype, values, log10, isfinite, zero, iszero
 
-#=
-export SVal, HPSVal, MVal, div12, mul12, add12, splitprec, canonicalize2, rat, twiceprecision,
-       SReal, SBigFloat, SFloat16, SFloat32, SFloat64, SBigInt, SInt128, SInt16,
-       SInt32, SInt64, SInt8, SInteger, SUInt128, SUInt64, SUInt32, SUInt16, SUInt8,
-       SFloat, SSigned, SUnsigned, SBool, SNothing, SZero, SOne, nbitslen
-=#
+export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
+       SUInt128, SUInt64, SUInt, SUInt32, SUInt16, SUInt8,
+       SFloat16, SFloat32, SFloat64,
+       SSigned, SUnsigned, SInteger, SFloat, SReal,
+       SVal
 
-export SNumber, MNumber, StaticNumber
-
-include("staticbool.jl")
-include("staticinteger.jl")
-include("staticinteger.jl")
-include("staticfloat.jl")
-include("staticirrational.jl")
-include("staticrational.jl")
-include("staticnumbers.jl")
-
-
-
+include("int.jl")
+include("float.jl")
+include("promote.jl")
+include("functions.jl")
 
 end
