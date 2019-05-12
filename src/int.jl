@@ -72,6 +72,7 @@ struct SInt8{V} <: Signed
         new{V}()
     end
 end
+
 const SSigned{V} = Union{SInt8{V},SInt16{V},SInt32{V},SInt64{V},SInt128{V}}
 const SInteger{V} = Union{SSigned{V},SUnsigned{V}}
 Base.leading_zeros(::SInteger{V}) where V = leading_zeros(V)
@@ -99,6 +100,12 @@ static_unsigned = (SUInt128,SUInt16,SUInt32,SUInt64,SUInt8)
 static_signed = (SInt128,SInt16,SInt32,SInt64,SInt8)
 
 static_integers = (static_unsigned..., static_signed...)
+
+base_unsigned = (UInt128,UInt16,UInt32,UInt64,UInt8)
+
+base_signed = (Int128,Int16,Int32,Int64,Int8)
+
+base_integers = (base_unsigned..., base_signed...)
 
 
 for (ST,BT) in zip(static_integers, base_integers)

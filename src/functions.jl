@@ -3,7 +3,7 @@ seek_static_val(::Type{T}, val::Val) where T =
 
 sval(val::Val{V}) where V = seek_static_val(typeof(V), val)
 
-for (ST,BT) in zip(static_tuple, base_tuple)
+for (ST,BT) in zip(static_real, base_real)
 
     # f(static) --> val
     @eval begin
@@ -50,12 +50,12 @@ for (ST,BT) in zip(static_tuple, base_tuple)
         (^)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = sval((^)(V1::$BT, V2::$BT))
         Base.mod(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(mod(X::$BT, Y::$BT))
         Base.mod1(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(mod1(X::$BT, Y::$BT))
-        Base.mod1(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(mod1(X::$BT, Y::$BT))
         Base.fld1(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(fld1(X::$BT, Y::$BT))
 
-
-        Base.add12(x, y) = add12(promote(x, y)...)
-
+        function add12(x::$ST, y::$ST)
+            x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
+            Base.canonicalize2(x, y)
+        end
 
         (::Type{<:$ST})(val::Val{V}) where V = convert_static_val($BT, typeof(V), val)
         seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{$BT}()
@@ -69,13 +69,7 @@ for (ST,BT) in zip(static_tuple, base_tuple)
     end
 
     # f(static, static) --> static
-    for f in (:*, :^, :\, :+, :-)
-        @eval begin
-            $f(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{$f(V1::$BT, V2::$BT)}()
-        end
-    end
-
-    for (ST2,BT2) in zip(static_tuple, base_tuple)
+    for (ST2,BT2) in zip(static_real, base_real)
         if BT == BT2
             @eval begin
                 (::Type{<:$ST{<:Any}})(val::$ST2) = val
@@ -109,15 +103,5 @@ for (ST,BT) in zip(static_tuple, base_tuple)
     # only iterate over <:Integer
     for (ST2,BT2) in zip(static_integers, base_integers)
         eval(:(Base.round(::Type{$BT2}, ::$ST{V}) where V = $ST2{round($BT2, V::$BT)}()))
-    end
-
-end
-
-for ST in static_tuple
-    @eval begin
-        function Base.add12(x::$ST, y::$ST)
-            x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
-            Base.canonicalize2(x, y)
-        end
     end
 end

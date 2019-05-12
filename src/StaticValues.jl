@@ -1,7 +1,7 @@
 module StaticValues
 
-import Base: TwicePrecision, promote_rule
-import Base: ==, +, -, *, /, ^, <, ~, :, abs, abs2, isless, max, min, div, rem
+import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
+import Base: ==, +, -, *, /, ^, <, ~, :, abs, abs2, isless, max, min, div, rem, promot_rule
 import Base: eltype, values, log10, isfinite, zero, iszero
 
 export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
@@ -14,5 +14,6 @@ include("int.jl")
 include("float.jl")
 include("promote.jl")
 include("functions.jl")
+include("twiceprecision.jl")
 
 end
