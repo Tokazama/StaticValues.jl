@@ -1,14 +1,15 @@
 seek_static_val(::Type{T}, val::Val) where T =
     error("elements of type $T are not currently supported")
 
-sval(val::Val{V}) where V = seek_static_val(typeof(V), val)
+SVal(val::SVal) = val
 
 for (ST,BT) in zip(static_real, base_real)
 
-    # f(static) --> val
     @eval begin
+        Base.@pure Base.values(::$ST{V}) where V = V::$BT
+        Base.@pure Base.values(::Type{$ST{V}}) where V = V::$BT
+
         Base.eltype(::$ST) = $BT
-        Base.values(::$ST{V}) where V = V::$BT
         Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
         Base.isfinite(::$ST{V}) where V = isfinite(V::$BT)
         Base.iszero(::$ST{V}) where V = iszero(V::$BT)
@@ -20,10 +21,10 @@ for (ST,BT) in zip(static_real, base_real)
         Base.one(::Type{<:$ST}) = $ST{one($BT)}()
 
         Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
-            sval(fma(X::$BT, Y::$BT, Z::$BT))
+            SVal(fma(X::$BT, Y::$BT, Z::$BT))
 
         Base.muladd(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
-            sval(muladd(X::$BT, Y::$BT, Z::$BT))
+            SVal(muladd(X::$BT, Y::$BT, Z::$BT))
 
         Base.div(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{div(X::$BT, Y::$BT)}()
 
@@ -46,11 +47,11 @@ for (ST,BT) in zip(static_real, base_real)
 
 
         # TODO: figure out return type inference for these (if possible)
-        (\)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = sval((\)(V1::$BT, V2::$BT))
-        (^)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = sval((^)(V1::$BT, V2::$BT))
-        Base.mod(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(mod(X::$BT, Y::$BT))
-        Base.mod1(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(mod1(X::$BT, Y::$BT))
-        Base.fld1(::$ST{X}, ::$ST{Y}) where {X,Y} = sval(fld1(X::$BT, Y::$BT))
+        (\)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SVal((\)(V1::$BT, V2::$BT))
+        (^)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SVal((^)(V1::$BT, V2::$BT))
+        Base.mod(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(mod(X::$BT, Y::$BT))
+        Base.mod1(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(mod1(X::$BT, Y::$BT))
+        Base.fld1(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(fld1(X::$BT, Y::$BT))
 
         function add12(x::$ST, y::$ST)
             x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
@@ -58,13 +59,24 @@ for (ST,BT) in zip(static_real, base_real)
         end
 
         (::Type{<:$ST})(val::Val{V}) where V = convert_static_val($BT, typeof(V), val)
-        seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{$BT}()
+
+        sone(::$ST) = $ST{one($BT)}()
+        sone(::Type{<:$ST}) = $ST{one($BT)}()
+
+        sone(::$BT) = $ST{one($BT)}()
+        sone(::Type{$BT}) = $ST{one($BT)}()
+
+        szero(::$ST) = $ST{zero($BT)}()
+        szero(::Type{<:$ST}) = $ST{zero($BT)}()
+
+        szero(::$BT) = $ST{zero($BT)}()
+        szero(::Type{$BT}) = $ST{zero($BT)}()
     end
 
     # f(static) --> Bool
-    for f in (:(==), :<, :<=, :(!=), :isless)
+    for f in (:(==), :<, :(<=), :>, :(>=), :(!=), :isless)
         @eval begin
-            $f(::$ST{V1}, ::$ST{V2}) where {V1,V2} = V1::$BT === V2::$BT
+            $f(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $f(V1::$BT, V2::$BT)
         end
     end
 
@@ -78,12 +90,32 @@ for (ST,BT) in zip(static_real, base_real)
                 Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = $BT
                 Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = flipsign(V1::$BT,V2::$BT2)
 
+
+                # converts to the element type but does not change from static/non-static type
+                ofeltype(::Type{$BT}, val::$ST) = val
+                ofeltype(::Type{$BT}, val::$BT) = val
+                ofeltype(::$BT, val::$ST) = val
+                ofeltype(::$BT, val::$BT) = val
+
+                ofeltype(::Type{<:$ST}, val::$ST) = val
+                ofeltype(::Type{<:$ST}, val::$BT) = val
+                ofeltype(::$ST, val::$ST) = val
+                ofeltype(::$ST, val::$BT) = val
+
                 (::Type{$BT2})(::$ST{V}) where V = V::$BT
-                convert_static_val(::Type{$BT}, ::Type{$BT2}, val::Val{V}) where V = $ST{V::$BT2}()
-                convert_static_val(::Type{$BT}, ::$ST2{V}) where V = $ST{V::$BT2}()
             end
         else
             @eval begin
+                ofeltype(::Type{$BT}, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
+                ofeltype(::Type{$BT}, val::$BT2) = $BT(val)
+                ofeltype(::$BT, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
+                ofeltype(::$BT, val::$BT2) = $BT(val)
+
+                ofeltype(::Type{$ST}, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
+                ofeltype(::Type{$ST}, val::$BT2) = $BT(val)
+                ofeltype(::$ST, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
+                ofeltype(::$ST, val::$BT2) = $BT(val)
+
                 (::Type{<:$ST{<:Any}})(::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
                 (::Type{<:$ST{<:Any}})(val::$BT2) = $ST{$BT(val)}()
 
@@ -94,14 +126,31 @@ for (ST,BT) in zip(static_real, base_real)
                 (::Type{$BT2})(::$ST{V}) where V = $BT2(V::$BT)
 
                 # Given Val of different type convert to SVal
-                convert_static_val(::Type{$BT}, ::Type{$BT2}, val::Val{V}) where V = $ST{$BT(V::$BT2)}()
-                convert_static_val(::Type{$BT}, ::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
             end
         end
     end
 
     # only iterate over <:Integer
-    for (ST2,BT2) in zip(static_integers, base_integers)
-        eval(:(Base.round(::Type{$BT2}, ::$ST{V}) where V = $ST2{round($BT2, V::$BT)}()))
+    for (ST2,BT2) in zip(static_integer, base_integer)
+        @eval begin
+            Base.round(::Type{$BT2}, ::$ST{V}) where V = $ST2{round($BT2, V::$BT)}()
+        end
     end
 end
+
+
+for (ST,BT) in zip(static_integer, base_integer)
+    @eval begin
+        (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SFloat64{(/)(V1::$BT, V2::$BT)}()
+    end
+end
+Base.promote_eltype(x::SVal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::BaseNumber, y::SVal) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::SVal, y::SVal) = promote_type(eltype(x), eltype(y))
+
+Base.promote_eltype(x::Type{<:SVal}, y::Type{<:SVal}) = promote_type(eltype(x), eltype(y))
+
+promote_toeltype(x, y) = promote_toeltype(promote_eltype(x, y), x, y)
+promote_toeltype(::Type{T}, x, y) where T = ofeltype(T, x), ofeltype(T, y)
+
+Base.trunc(::Type{T}, x::SVal) where T = SVal(trunc(T, values(x)))

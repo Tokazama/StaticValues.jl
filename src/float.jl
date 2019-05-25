@@ -1,34 +1,74 @@
 struct SFloat64{V} <: AbstractFloat
     function SFloat64{V}() where V
-        !(typeof(V) === Float64) && throw(ArgumentError("SFloat64 only supports static Float64 storage, got $(typeof(V))"))
+        !(V isa Float64) && throw(ArgumentError("SFloat64 only supports static Float64 storage, got $(typeof(V))"))
         new{V}()
     end
 end
 
 struct SFloat32{V} <: AbstractFloat
     function SFloat32{V}() where V
-        !(typeof(V) === Float32) && throw(ArgumentError("SFloat32 only supports static Float32 storage, got $(typeof(V))"))
+        !(V isa Float32) && throw(ArgumentError("SFloat32 only supports static Float32 storage, got $(typeof(V))"))
         new{V}()
     end
 end
 
 struct SFloat16{V} <: AbstractFloat
     function SFloat16{V}() where V
-        !(typeof(V) === Float16) && throw(ArgumentError("SFloat16 only supports static Float16 storage, got $(typeof(V))"))
+        !(V isa Float16) && throw(ArgumentError("SFloat16 only supports static Float16 storage, got $(typeof(V))"))
         new{V}()
     end
 end
 
-const SFloat{V} = Union{SFloat16{V}, SFloat32{V}, SFloat64{V}}
-Base.show(io::IO, ::SFloat{V}) where V = print(io, V)
+const SFloat{V} = Union{SFloat16{V},SFloat32{V},SFloat64{V}}
 
-promote_rule(::Type{SFloat64}, ::Type{SUInt128}) = SFloat64
-promote_rule(::Type{SFloat64}, ::Type{SInt128})  = SFloat64
-promote_rule(::Type{SFloat32}, ::Type{SUInt128}) = SFloat32
-promote_rule(::Type{SFloat32}, ::Type{SInt128})  = SFloat32
-promote_rule(::Type{SFloat32}, ::Type{SFloat16}) = SFloat32
-promote_rule(::Type{SFloat64}, ::Type{SFloat16}) = SFloat64
-promote_rule(::Type{SFloat64}, ::Type{SFloat32}) = SFloat64
+function SFloat(val::Val{V}) where V
+    if V isa Float16
+        SFloat16{V}()
+    elseif V isa Float32
+        SFloat32{V}()
+    else
+        SFloat64{V}()
+    end
+end
+
+SFloat(x::Float16) = SFloat16{x}()
+SFloat(x::Float32) = SFloat32{x}()
+SFloat(x::Float64) = SFloat64{x}()
+
+Base.show(io::IO, val::SFloat) = print(io, values(val))
+
+promote_rule(::Type{SFloat16}, ::Type{SBool}) = SFloat16
+promote_rule(::Type{<:SFloat64}, ::Type{<:SUInt128}) = SFloat64
+promote_rule(::Type{<:SFloat64}, ::Type{<:SInt128})  = SFloat64
+promote_rule(::Type{<:SFloat32}, ::Type{<:SUInt128}) = SFloat32
+promote_rule(::Type{<:SFloat32}, ::Type{<:SInt128})  = SFloat32
+promote_rule(::Type{<:SFloat32}, ::Type{<:SFloat16}) = SFloat32
+promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat16}) = SFloat64
+promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat32}) = SFloat64
+
+for t in static_integer
+    @eval promote_rule(::Type{<:SFloat16}, ::Type{<:$t}) = SFloat16
+end
+
+for t1 in (SFloat32, SFloat64)
+    for st in (SInt8, SInt16, SInt32, SInt64)
+        @eval begin
+#            (::Type{$t1})(x::($st)) = sitofp($t1, x)
+            promote_rule(::Type{<:$t1}, ::Type{<:$st}) = $t1
+        end
+    end
+    for ut in (SBool, SUInt8, SUInt16, SUInt32, SUInt64)
+        @eval begin
+#            (::Type{$t1})(x::($ut)) = uitofp($t1, x)
+            promote_rule(::Type{<:$t1}, ::Type{<:$ut}) = $t1
+        end
+    end
+end
+
+#(::Type{T})(x::Float16) where {T<:Integer} = T(Float32(x))
+
+#Bool(x::Real) = x==0 ? false : x==1 ? true : throw(InexactError(:Bool, Bool, x))
+
 
 Base.sign_mask(::Type{<:SFloat64})        = SUInt64(0x8000_0000_0000_0000)
 Base.exponent_mask(::Type{<:SFloat64})    = SUInt64(0x7ff0_0000_0000_0000)
@@ -63,10 +103,21 @@ exponent_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> sign
 exponent_raw_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> significand_bits(T))
 
 static_float = (SFloat64,SFloat32,SFloat16)
-base_float = (Float64,Float32,Float16)
 
 for (ST,BT) in zip(static_float,base_float)
     @eval begin
+        Base.prevfloat(x::$ST{V}) where V = $ST{prevfloat(V::$BT)}()
+        Base.prevfloat(x::$ST{V}, n::Integer) where V = $ST{prevfloat(V::$BT, n)}()
+
+        Base.floatmax(x::$ST) = $ST{floatmax($BT)}()
+        Base.floatmax(::Type{$ST}) = $ST{floatmax($BT)}()
+
+        Base.floatmin(x::$ST) = $ST{floatmin($BT)}()
+        Base.floatmin(::Type{$ST}) = $ST{floatmin($BT)}()
+
+
+        (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(/)(V1::$BT, V2::$BT)}()
+
         function Base.mul12(x::$ST, y::$ST)
             h = x * y
             ifelse(iszero(h) | !isfinite(h), (h, h), Base.canonicalize2(h, fma(x, y, -h)))
@@ -85,6 +136,9 @@ for (ST,BT) in zip(static_float,base_float)
         Base.frexp(::$ST{X}) where X = $ST{frexp(X::$BT)}()
     end
 end
+Base.unsigned(x::SFloat) = Base.unsigned(SInt(x))
 
-
-
+Base.maxintfloat(::Type{<:SFloat64}) = SFloat64(9007199254740992.)
+Base.maxintfloat(::Type{<:SFloat32}) = SFloat32(16777216.)
+Base.maxintfloat(::Type{<:SFloat16}) = SFloat16(2048f0)
+Base.maxintfloat(x::T) where {T<:SFloat} = maxintfloat(T)

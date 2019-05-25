@@ -1,9 +1,4 @@
 
-static_real = (static_integers..., static_float...)
-const SReal{V} = Union{SInteger{V},SFloat{V}}
-
-base_real = (base_integers..., base_float...)
-const BaseReal = Union{base_real...}
 
 notin_tuple = (Union{SSigned,SUInt64,SUInt32,SUInt16,SUInt8,SFloat},
                Union{SSigned,SUInt128,SUInt32,SUInt16,SUInt8,SFloat},
