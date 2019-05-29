@@ -75,6 +75,7 @@ struct SInt64{V} <: Signed
         new{V}()
     end
 end
+
 const SInt{V} = SInt64{V}
 
 struct SInt32{V} <: Signed
