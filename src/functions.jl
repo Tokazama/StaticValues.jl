@@ -10,6 +10,7 @@ for (ST,BT) in zip(static_real, base_real)
         Base.@pure Base.values(::Type{$ST{V}}) where V = V::$BT
 
         Base.eltype(::$ST) = $BT
+        Base.eltype(::Type{<:$ST}) = $BT
         Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
         Base.isfinite(::$ST{V}) where V = isfinite(V::$BT)
         Base.iszero(::$ST{V}) where V = iszero(V::$BT)
