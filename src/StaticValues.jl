@@ -1,8 +1,9 @@
 module StaticValues
 
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
-import Base: ==, +, -, *, /, ^, <, >, <=, >=, ~, :, !, abs, abs2, isless, max, min, div, rem, promote_rule
-import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero
+import Base: ==, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
+import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
+             abs, abs2, isless, max, min, div, rem, promote_rule
 
 export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SUInt128, SUInt64, SUInt, SUInt32, SUInt16, SUInt8,
@@ -55,9 +56,41 @@ SReal(x::Irrational) = SIrrational(x)
 
 function SReal(val::Val{V}) where V
     if V isa Integer
-        SInteger(val)
+        if V isa Unsigned
+            if V isa UInt8
+                SUInt8{V}()
+            elseif V isa UInt16
+                SUInt16{V}()
+            elseif V isa UInt32
+                SUInt32{V}()
+            elseif V isa UInt128
+                SUInt128{V}()
+            else
+                SUInt64{V}()
+            end
+        elseif V isa Bool
+            SBool{V}()
+        elseif V isa Signed
+            if V isa Int8
+                SInt8{V}()
+            elseif V isa Int16
+                SInt16{V}()
+            elseif V isa Int32
+                SInt32{V}()
+            elseif V isa Int128
+                SInt128{V}()
+            else
+                SInt64{V}()
+            end
+        end
     elseif V isa AbstractFloat
-        SFloat(val)
+        if V isa Float16
+            SFloat16{V}()
+        elseif V isa Float32
+            SFloat32{V}()
+        else
+            SFloat64{V}()
+        end
     elseif V isa Rational
         SRational(val)
     elseif V isa Irrational
@@ -72,7 +105,47 @@ SNumber(x::Complex) = SComplex(x)
 
 function SNumber(val::Val{V}) where V
     if V isa Real
-        SReal(val)
+        if V isa Integer
+            if V isa Unsigned
+                if V isa UInt8
+                    SUInt8{V}()
+                elseif V isa UInt16
+                    SUInt16{V}()
+                elseif V isa UInt32
+                    SUInt32{V}()
+                elseif V isa UInt128
+                    SUInt128{V}()
+                else
+                    SUInt64{V}()
+                end
+            elseif V isa Bool
+                SBool{V}()
+            elseif V isa Signed
+                if V isa Int8
+                    SInt8{V}()
+                elseif V isa Int16
+                    SInt16{V}()
+                elseif V isa Int32
+                    SInt32{V}()
+                elseif V isa Int128
+                    SInt128{V}()
+                else
+                    SInt64{V}()
+                end
+            end
+        elseif V isa AbstractFloat
+            if V isa Float16
+                SFloat16{V}()
+            elseif V isa Float32
+                SFloat32{V}()
+            else
+                SFloat64{V}()
+            end
+        elseif V isa Rational
+            SRational(val)
+        elseif V isa Irrational
+            SIrrational(val)
+        end
     elseif V isa Complex
         SComplex(val)
     end

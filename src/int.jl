@@ -148,8 +148,8 @@ static_integer = (static_unsigned..., static_signed...)
 
 for (ST,BT) in zip(static_integer, base_integer)
     @eval begin
-        Base.typemax(::$ST) = $ST{typemax($BT)}()
-        Base.typemax(::Type{$ST}) = $ST{typemax($BT)}()
+        Base.typemax(::$ST) = $ST{Base.typemax($BT)}()
+        Base.typemax(::Type{$ST}) = $ST{Base.typemax($BT)}()
 
         Base.typemin(::$ST) = $ST{typemin($BT)}()
         Base.typemin(::Type{$ST}) = $ST{typemin($BT)}()
@@ -175,8 +175,8 @@ end
 
 SBool(::Val{V}) where V = SBool{V}()
 
-typemin(::Type{SBool}) = SBool{false}()
-typemax(::Type{SBool}) = SBool{true}()
+Base.typemin(::Type{SBool}) = SBool{false}()
+Base.typemax(::Type{SBool}) = SBool{true}()
 
 (!)(::SBool{X}) where X = SBool{!X::Bool}()
 
@@ -226,13 +226,39 @@ Base.mod(x::SBool, y::SBool) = rem(x,y)
 
 const SInteger{V} = Union{SSigned{V},SUnsigned{V},SBool{V}}
 
+>>(::SInteger{V1}, v2::BaseInteger) where V1 = >>(V1, v2)
+>>(v2::BaseInteger, ::SInteger{V1}) where V1 = >>(v2, V1)
+
+<<(::SInteger{V1}, v2::BaseInteger) where V1 = <<(V1, v2)
+<<(v2::BaseInteger, ::SInteger{V1}) where V1 = <<(v2, V1)
+
 function SInteger(val::Val{V}) where V
     if V isa Unsigned
-        SUnsigned(val)
+        if V isa UInt8
+            SUInt8{V}()
+        elseif V isa UInt16
+            SUInt16{V}()
+        elseif V isa UInt32
+            SUInt32{V}()
+        elseif V isa UInt128
+            SUInt128{V}()
+        else
+            SUInt64{V}()
+        end
     elseif V isa Bool
         SBool{V}()
-    else
-        SSigned(val)
+    elseif V isa Signed
+        if V isa Int8
+            SInt8{V}()
+        elseif V isa Int16
+            SInt16{V}()
+        elseif V isa Int32
+            SInt32{V}()
+        elseif V isa Int128
+            SInt128{V}()
+        else
+            SInt64{V}()
+        end
     end
 end
 
