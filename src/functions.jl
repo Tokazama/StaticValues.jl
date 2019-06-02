@@ -8,11 +8,10 @@ for (ST,BT) in zip(static_real, base_real)
 
         Base.eltype(::$ST) = $BT
         Base.eltype(::Type{<:$ST}) = $BT
-        Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
         Base.isfinite(::$ST{V}) where V = isfinite(V::$BT)
 
         Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
-            SVal(fma(X::$BT, Y::$BT, Z::$BT))
+            $ST{fma(X::$BT, Y::$BT, Z::$BT)}()
 
         Base.muladd(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
             SVal(muladd(X::$BT, Y::$BT, Z::$BT))
@@ -83,7 +82,6 @@ for (ST,BT) in zip(static_real, base_real)
                 Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = $BT
                 Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = flipsign(V1::$BT,V2::$BT2)
 
-
                 # converts to the element type but does not change from static/non-static type
                 ofeltype(::Type{$BT}, val::$ST) = val
                 ofeltype(::Type{$BT}, val::$BT) = val
@@ -131,36 +129,14 @@ for (ST,BT) in zip(static_real, base_real)
     end
 end
 
-for ST in (static_integer..., static_float...)
-    @eval begin
-        const $(Symbol("$(ST)One")) = $ST(1)
-        const $(Symbol("$(ST)Zero")) = $ST(0)
-
-        const $(Symbol("$(ST)OneType")) = typeof($ST(1))
-        const $(Symbol("$(ST)ZeroType")) = typeof($ST(0))
-
-        Base.@pure Base.iszero(x::$(Symbol("$(ST)ZeroType"))) = true
-        Base.@pure Base.iszero(x::$ST{T}) where T = false
-
-
-        Base.@pure Base.isone(x::$(Symbol("$(ST)OneType"))) = true
-        Base.@pure Base.isone(x::$ST{T}) where T = false
-
-        Base.@pure Base.zero(::$ST) = $(Symbol("$(ST)Zero")) = $ST(0)
-        Base.@pure Base.zero(::Type{<:$ST}) = $(Symbol("$(ST)Zero")) = $ST(0)
-
-        Base.@pure Base.one(::$ST) = $(Symbol("$(ST)One"))
-        Base.@pure Base.one(::Type{<:$ST}) = $(Symbol("$(ST)One"))
-    end
-end
-
-
-
 for (ST,BT) in zip(static_integer, base_integer)
     @eval begin
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SFloat64{(/)(V1::$BT, V2::$BT)}()
+        Base.log2(::$ST{V}) where V = SFloat64{log(V::$BT)/log(2)}()
+        Base.log10(::$ST{V}) where V = SFloat64{log(V::$BT)/log(10)}()
     end
 end
+
 Base.promote_eltype(x::SVal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
 Base.promote_eltype(x::BaseNumber, y::SVal) = promote_type(eltype(x), eltype(y))
 Base.promote_eltype(x::SVal, y::SVal) = promote_type(eltype(x), eltype(y))
@@ -171,3 +147,26 @@ promote_toeltype(x, y) = promote_toeltype(promote_eltype(x, y), x, y)
 promote_toeltype(::Type{T}, x, y) where T = ofeltype(T, x), ofeltype(T, y)
 
 Base.trunc(::Type{T}, x::SVal) where T = SVal(trunc(T, values(x)))
+
+nbits16 = SInt(cld(precision(Float16), 2))
+nbits32 = SInt(cld(precision(Float32), 2))
+nbits64 = SInt(cld(precision(Float64), 2))
+
+# lack of specificity in base requires that these be more verbosely written out
+Base.nbitslen(::Type{Float16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
+Base.nbitslen(::Type{<:SFloat16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
+
+Base.AbstractFloat(x::SInteger) = SFloat64(x)
+Base.oneunit(x::SNumber) = one(x)

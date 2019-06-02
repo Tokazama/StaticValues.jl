@@ -108,6 +108,7 @@ SSigned(x::Int32) = SInt32(x)
 SSigned(x::Int64) = SInt64(x)
 SSigned(x::Int128) = SInt128(x)
 
+
 function SSigned(val::Val{V}) where V
     if V isa Int8
         SInt8{V}()
@@ -121,6 +122,181 @@ function SSigned(val::Val{V}) where V
         SInt64{V}()
     end
 end
+
+const SUInt128One = SUInt128{UInt128(1)}()
+const SUInt128Zero = SUInt128{UInt128(0)}()
+
+const SUInt128OneType = typeof(SUInt128{UInt128(1)}())
+const SUInt128ZeroType = typeof(SUInt128{UInt128(0)}())
+
+@pure Base.one(::SUInt128) = SUInt128One
+@pure Base.one(::Type{<:SUInt128}) = SUInt128One
+
+@pure Base.isone(::SUInt128OneType) = true
+@pure Base.isone(::SUInt128{T}) where T = false
+
+@pure Base.zero(::SUInt128) = SUInt128Zero
+@pure Base.zero(::Type{<:SUInt128}) = SUInt128Zero
+
+@pure Base.iszero(::SUInt128ZeroType) = true
+@pure Base.iszero(::SUInt128{T}) where T = false
+
+const SInt128One = SInt128{Int128(1)}()
+const SInt128Zero = SInt128{Int128(0)}()
+const SInt128OneType = typeof(SInt128{Int128(1)}())
+const SInt128ZeroType = typeof(SInt128{Int128(0)}())
+
+@pure Base.one(::SInt128) = SInt128One
+@pure Base.one(::Type{<:SInt128}) = SInt128One
+
+@pure Base.isone(::SInt128OneType) = true
+@pure Base.isone(::SInt128{T}) where T = false
+
+@pure Base.zero(::SInt128) = SInt128Zero
+@pure Base.zero(::Type{<:SInt128}) = SInt128Zero
+
+@pure Base.iszero(::SInt128ZeroType) = true
+@pure Base.iszero(::SInt128{T}) where T = false
+
+const SUInt64One = SUInt64{UInt64(1)}()
+const SUInt64Zero = SUInt64{UInt64(0)}()
+const SUInt64OneType = typeof(SUInt64{UInt64(1)}())
+const SUInt64ZeroType = typeof(SUInt64{UInt64(0)}())
+
+@pure Base.one(::SUInt64) = SUInt64One
+@pure Base.one(::Type{<:SUInt64}) = SUInt64One
+
+@pure Base.isone(::SUInt64OneType) = true
+@pure Base.isone(::SUInt64{T}) where T = false
+
+@pure Base.zero(::SUInt64) = SUInt64Zero
+@pure Base.zero(::Type{<:SUInt64}) = SUInt64Zero
+
+@pure Base.iszero(::SUInt64ZeroType) = true
+@pure Base.iszero(::SUInt64{T}) where T = false
+
+
+const SInt64One = SInt64{1}()
+const SInt64Zero = SInt64{0}()
+const SInt64OneType = typeof(SInt64{1}())
+const SInt64ZeroType = typeof(SInt64{0}())
+
+@pure Base.one(::SInt64) = SInt64One
+@pure Base.one(::Type{<:SInt64}) = SInt64One
+
+@pure Base.isone(::SInt64OneType) = true
+@pure Base.isone(::SInt64{T}) where T = false
+
+@pure Base.zero(::SInt64) = SInt64Zero
+@pure Base.zero(::Type{<:SInt64}) = SInt64Zero
+
+@pure Base.iszero(::SInt64ZeroType) = true
+@pure Base.iszero(::SInt64{T}) where T = false
+
+const SUInt32One = SUInt32{UInt32(1)}()
+const SUInt32Zero = SUInt32{UInt32(0)}()
+const SUInt32OneType = typeof(SUInt32{UInt32(1)}())
+const SUInt32ZeroType = typeof(SUInt32{UInt32(0)}())
+
+@pure Base.one(::SUInt32) = SUInt32One
+@pure Base.one(::Type{<:SUInt32}) = SUInt32One
+
+@pure Base.isone(::SUInt32OneType) = true
+@pure Base.isone(::SUInt32{T}) where T = false
+
+@pure Base.zero(::SUInt32) = SUInt32Zero
+@pure Base.zero(::Type{<:SUInt32}) = SUInt32Zero
+
+@pure Base.iszero(::SUInt32ZeroType) = true
+@pure Base.iszero(::SUInt32{T}) where T = false
+
+const SInt32One = SInt32{Int32(1)}()
+const SInt32Zero = SInt32{Int32(0)}()
+const SInt32OneType = typeof(SInt32{Int32(1)}())
+const SInt32ZeroType = typeof(SInt32{Int32(0)}())
+
+@pure Base.one(::SInt32) = SInt32One
+@pure Base.one(::Type{<:SInt32}) = SInt32One
+
+@pure Base.isone(::SInt32OneType) = true
+@pure Base.isone(::SInt32{T}) where T = false
+
+@pure Base.zero(::SInt32) = SInt32Zero
+@pure Base.zero(::Type{<:SInt32}) = SInt32Zero
+
+@pure Base.iszero(::SInt32ZeroType) = true
+@pure Base.iszero(::SInt32{T}) where T = false
+
+const SUInt16One = SUInt16{UInt16(1)}()
+const SUInt16Zero = SUInt16{UInt16(0)}()
+const SUInt16OneType = typeof(SUInt16{UInt16(1)}())
+const SUInt16ZeroType = typeof(SUInt16{UInt16(0)}())
+
+@pure Base.one(::SUInt16) = SUInt16One
+@pure Base.one(::Type{<:SUInt16}) = SUInt16One
+
+@pure Base.isone(::SUInt16OneType) = true
+@pure Base.isone(::SUInt16{T}) where T = false
+
+@pure Base.zero(::SUInt16) = SUInt16Zero
+@pure Base.zero(::Type{<:SUInt16}) = SUInt16Zero
+
+@pure Base.iszero(::SUInt16ZeroType) = true
+@pure Base.iszero(::SUInt16{T}) where T = false
+
+const SInt16One = SInt16{Int16(1)}()
+const SInt16Zero = SInt16{Int16(0)}()
+const SInt16OneType = typeof(SInt16{Int16(1)}())
+const SInt16ZeroType = typeof(SInt16{Int16(0)}())
+
+@pure Base.one(::SInt16) = SInt16One
+@pure Base.one(::Type{<:SInt16}) = SInt16One
+
+@pure Base.isone(::SInt16OneType) = true
+@pure Base.isone(::SInt16{T}) where T = false
+
+@pure Base.zero(::SInt16) = SInt16Zero
+@pure Base.zero(::Type{<:SInt16}) = SInt16Zero
+
+@pure Base.iszero(::SInt16ZeroType) = true
+@pure Base.iszero(::SInt16{T}) where T = false
+
+const SUInt8One = SUInt8{UInt8(1)}()
+const SUInt8Zero = SUInt8{UInt8(0)}()
+const SUInt8OneType = typeof(SUInt8{UInt8(1)}())
+const SUInt8ZeroType = typeof(SUInt8{UInt8(0)}())
+
+@pure Base.one(::SUInt8) = SUInt8One
+@pure Base.one(::Type{<:SUInt8}) = SUInt8One
+
+@pure Base.isone(::SUInt8OneType) = true
+@pure Base.isone(::SUInt8{T}) where T = false
+
+@pure Base.zero(::SUInt8) = SUInt8Zero
+@pure Base.zero(::Type{<:SUInt8}) = SUInt8Zero
+
+@pure Base.iszero(::SUInt8ZeroType) = true
+@pure Base.iszero(::SUInt8{T}) where T = false
+
+const SInt8One = SInt8{Int8(1)}()
+const SInt8Zero = SInt8{Int8(0)}()
+const SInt8OneType = typeof(SInt8{Int8(1)}())
+const SInt8ZeroType = typeof(SInt8{Int8(0)}())
+
+@pure Base.one(::SInt8) = SInt8One
+@pure Base.one(::Type{<:SInt8}) = SUInt8One
+
+@pure Base.isone(::SInt8OneType) = true
+@pure Base.isone(::SInt8{T}) where T = false
+
+@pure Base.zero(::SInt8) = SInt8Zero
+@pure Base.zero(::Type{<:SInt8}) = SInt8Zero
+
+@pure Base.iszero(::SInt8ZeroType) = true
+@pure Base.iszero(::SInt8{T}) where T = false
+
+const SOne = SInt{1}()
+const SZero = SInt{0}()
 
 Base.leading_zeros(::SSigned{V}) where V = leading_zeros(V)
 Base.leading_ones(::SSigned{V}) where V = leading_ones(V)
@@ -268,9 +444,6 @@ SInteger(x::Signed) = SSigned(x)
 
 SInteger(x::Unsigned) = SUnsigned(x)
 
-const SOne = SInt{1}()
-const SZero = SInt{0}()
-
 Base.unsigned(x::SBool{true}) = SUInt(1)
 Base.unsigned(x::SBool{false}) = SUInt(0)
 
@@ -281,9 +454,19 @@ Base.unsigned(x::SInt64) = SUInt64(x)
 Base.unsigned(x::SInt128) = SUInt128(x)
 Base.unsigned(x::SUnsigned) = x
 
+Base.Unsigned(x::SInteger) = Base.unsigned(x)
+
 Base.unsigned(::Type{<:SInt8}) = SUInt8
 Base.unsigned(::Type{<:SInt16}) = SUInt16
 Base.unsigned(::Type{<:SInt32}) = SUInt32
 Base.unsigned(::Type{<:SInt64}) = SUInt64
 Base.unsigned(::Type{<:SInt128}) = SUInt128
 Base.unsigned(::Type{T}) where {T<:SUnsigned} = T
+
+Base.Signed(x::SSigned) = x
+
+Base.Signed(x::SUInt8{X}) where X = SInt8{Int8(X::UInt8)}()
+Base.Signed(x::SUInt16{X}) where X = SInt16{Int16(X::UInt16)}()
+Base.Signed(x::SUInt32{X}) where X = SInt32{Int32(X::UInt32)}()
+Base.Signed(x::SUInt64{X}) where X = SInt64{Int64(X::UInt64)}()
+Base.Signed(x::SUInt128{X}) where X = SInt128{Int128(X::UInt128)}()

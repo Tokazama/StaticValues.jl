@@ -3,7 +3,7 @@ module StaticValues
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
 import Base: ==, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
 import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
-             abs, abs2, isless, max, min, div, rem, promote_rule
+             abs, abs2, isless, max, min, div, rem, promote_rule, @pure
 
 export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SUInt128, SUInt64, SUInt, SUInt32, SUInt16, SUInt8,
@@ -14,9 +14,7 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        AbstractFloat64, AbstractFloat32, AbstractFloat16,
        SSigned, SUnsigned, SInteger, SFloat, SReal,
        SVal, TPVal,
-       SOne, SZero,
-       sone,
-       szero
+       SOne, SZero
 
 
 base_unsigned = (UInt128,UInt16,UInt32,UInt64,UInt8)

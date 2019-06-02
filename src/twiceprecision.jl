@@ -54,11 +54,11 @@ function getlo end
 gethi(x::TwicePrecision) = x.hi
 getlo(x::TwicePrecision) = x.lo
 
-Base.@pure gethi(::TPVal{H,L}) where {H,L} = H()
-Base.@pure gethi(::Type{<:TPVal{H,L}}) where {H,L} = H()
+Base.@pure gethi(::TPVal{H,L}) where {H,L} = H()::H
+Base.@pure gethi(::Type{<:TPVal{H,L}}) where {H,L} = H()::H
 
-Base.@pure getlo(::TPVal{H,L}) where {H,L} = L()
-Base.@pure getlo(::Type{<:TPVal{H,L}}) where {H,L} = L()
+Base.@pure getlo(::TPVal{H,L}) where {H,L} = L()::L
+Base.@pure getlo(::Type{<:TPVal{H,L}}) where {H,L} = L()::L
 
 eltype(::TPVal{H,L}) where {H,L} = eltype(H)
 
@@ -80,6 +80,9 @@ TPVal(::Type{T}, ::Tuple{N,D}) where {N<:SInteger,D<:SInteger,T<:Union{Float16,F
     TPVal(ofeltype(T, N()/D()))
 
 TPVal(::Type{T}, ::Tuple{N,D}) where {T,N<:SReal,D<:SReal} = TPVal(ofeltype(T, N())) / D()
+TPVal(::Type{Float64}, nd::Tuple{N,D}) where {T,N<:SReal,D<:SReal} =
+    TPVal(ofeltype(Float64, nd[1]::N)) / nd[2]::D
+
 
 TPVal(::Type{T}, nd::Tuple, nb::Integer) where {T} = Base.twiceprecision(TPVal(T, nd), nb)
 
@@ -123,6 +126,13 @@ tpval(::Type{T}, hi::T, lo::T) where T<:BaseReal = TwicePrecision{T}(hi, lo)
 tpval(::Type{T}, frac::Tuple{<:SNumber,<:SNumber}, n::SInteger) where T = TPVal(T, frac, n)
 tpval(::Type{T}, frac::Tuple{<:BaseNumber,<:BaseNumber}, n::Number) where T = TwicePrecision{T}(frac, values(n))
 
+tpval(::Type{T}, nd::Tuple{N,D}) where {N<:SInteger,D<:SInteger,T<:Union{Float16,Float32}} =
+    TPVal(ofeltype(T, nd[1]::N/nd[2]::D))
+
+tpval(::Type{T}, ::Tuple{N,D}) where {T,N<:SReal,D<:SReal} = TPVal(ofeltype(T, N())) / D()
+
+tpval(::Type{T}, nd::Tuple{N,D}, nb::Integer) where {T,N<:SNumber,D<:SNumber} = Base.twiceprecision(TPVal(T, nd), nb)
+
 
 
 tpval(hi::SFloat64{H}, lo::SFloat64{L}) where {H,L} = TPVal{SFloat64{H},SFloat64{L}}()
@@ -131,7 +141,6 @@ tpval(hi::SFloat16{H}, lo::SFloat16{L}) where {H,L} = TPVal{SFloat16{H},SFloat16
 tpval(::Type{T}, frac::Tuple{N,D}) where {T,N<:SNumber,D<:SNumber} = TPVal(T, frac)
 tpval(x::SNumber) = TPVal(x)
 tpval(x::BaseNumber) = TwicePrecision(x)
-
 
 tpval(nd::Tuple{N,D}, nb::Integer) where {T,N,D} = Base.twiceprecision(tpval(nd), nb)
 
@@ -253,22 +262,23 @@ end
     ifelse(iszero(zh) | !isfinite(zh), TPVal(zh, zh), TPVal(canonicalize2(zh, gethi(x) * getlo(y) + getlo(x) * gethi(y))...))
 end
 
-function *(x::TPVal{Tuple{H,L},T}, s::SInteger) where {H,L,T<:Union{Float16, Float32, Float64}}
+#= TODO: shouldn't need this anymore
+function *(x::TPVal{H,L}, s::SInteger) where {H,L,T<:Union{Float16, Float32, Float64}}
     v == 0 && return TPVal(H::T1 * s, L::T1 * s)
     nb = ceil(Int, log2(abs(s)))
     u = Base.truncbits(H::T1, get(nb))
     TPVal(canonicalize2(SReal(u* s), SReal((H::T1-u) + L::T1*s))...)
 end
-
+=#
 
 # TODO: check this
 
 #*(x::TPVal{V1,T1}, y::TPVal{V2,T2}) where {V1,V2,T1,T2} = *(promote(x, y)...)
 
-/(x::TPVal, v::Real) = x / tpval(oftype(gethi(x)/v, v))
+/(x::TPVal{H,L}, v::Real) where {H,L} = x / tpval(ofeltype(gethi(x)::H/v, v))
 
 function /(x::TPVal{Hx,Lx}, y::TPVal{Hy,Ly}) where {Hx,Lx,Hy,Ly}
-    hi = SReal(gethi(x) / gethi(y))
+    hi = gethi(x) / gethi(y)
     uh, ul = Base.mul12(hi, gethi(y))
     lo = ((((gethi(x) - uh) - ul) + getlo(x)) - hi*getlo(y))/gethi(y)
     ret = TPVal(canonicalize2(hi, lo)...)
@@ -278,14 +288,13 @@ end
 #nbitslen(r::StaticRange{T,B,E,S,F,L}) where {T,B,E,S,F,L} = nbitslen(T, L, F)
 #@inline ($f)(x::Float64) = nan_dom_err(ccall(($(string(f)), libm), Float64, (Float64,), x), x) 
 
-nbitslen(::Type{T}, l::SReal, f::SReal) where {T<:Union{Float16, Float32, Float64}} =
-    min(nbithelper(T), nbitslen(l, f))
+#
 
 nbithelper(::Type{T}) where T = cld(SReal(precision(T)), SReal(2))
 
 # The +1 here is for safety, because the precision of the significand
 # is 1 bit higher than the number that are explicitly stored.
-function nbitslen(l::SReal, f::SReal)
+function Base.nbitslen(l::SReal, f::SReal)
     if l < 2
         return SZero
     else

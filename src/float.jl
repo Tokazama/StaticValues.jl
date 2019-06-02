@@ -21,6 +21,11 @@ end
 
 const SFloat{V} = Union{SFloat16{V},SFloat32{V},SFloat64{V}}
 
+SFloat(x::Float16) = SFloat16{x}()
+SFloat(x::Float32) = SFloat32{x}()
+SFloat(x::Float64) = SFloat64{x}()
+SFloat(x::BaseNumber) = SFloat(float(x))
+
 function SFloat(val::Val{V}) where V
     if V isa Float16
         SFloat16{V}()
@@ -31,36 +36,34 @@ function SFloat(val::Val{V}) where V
     end
 end
 
-SFloat(x::Float16) = SFloat16{x}()
-SFloat(x::Float32) = SFloat32{x}()
-SFloat(x::Float64) = SFloat64{x}()
+const SFloat64One = SFloat64{1.0}()
+const SFloat64Zero = SFloat64{0.0}()
+const SFloat64OneType = typeof(SFloat64{1.0}())
+const SFloat64ZeroType = typeof(SFloat64{0.0}())
+
+const SFloat32One = SFloat32{Float32(1)}()
+const SFloat32Zero = SFloat32{Float32(0)}()
+const SFloat32OneType = typeof(SFloat32{Float32(1)}())
+const SFloat32ZeroType = typeof(SFloat32{Float32(0)}())
+
+const SFloat16One = SFloat16{Float16(1)}()
+const SFloat16Zero = SFloat16{Float16(0)}()
+const SFloat16OneType = typeof(SFloat16{Float16(1)}())
+const SFloat16ZeroType = typeof(SFloat16{Float16(0)}())
 
 Base.show(io::IO, val::SFloat) = print(io, values(val))
 
 promote_rule(::Type{SFloat16}, ::Type{SBool}) = SFloat16
-promote_rule(::Type{<:SFloat64}, ::Type{<:SUInt128}) = SFloat64
-promote_rule(::Type{<:SFloat64}, ::Type{<:SInt128})  = SFloat64
-promote_rule(::Type{<:SFloat32}, ::Type{<:SUInt128}) = SFloat32
-promote_rule(::Type{<:SFloat32}, ::Type{<:SInt128})  = SFloat32
 promote_rule(::Type{<:SFloat32}, ::Type{<:SFloat16}) = SFloat32
 promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat16}) = SFloat64
 promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat32}) = SFloat64
 
-for t in static_integer
-    @eval promote_rule(::Type{<:SFloat16}, ::Type{<:$t}) = SFloat16
-end
-
-for t1 in (SFloat32, SFloat64)
-    for st in (SInt8, SInt16, SInt32, SInt64)
+# TODO: SInt128 promotions are type unstable!
+for (ST,BT) in ((SFloat16, Float16), (SFloat32,Float32), (SFloat64,Float64))
+    for (ST2,BT2) in zip(static_integer, base_integer)
         @eval begin
-#            (::Type{$t1})(x::($st)) = sitofp($t1, x)
-            promote_rule(::Type{<:$t1}, ::Type{<:$st}) = $t1
-        end
-    end
-    for ut in (SBool, SUInt8, SUInt16, SUInt32, SUInt64)
-        @eval begin
-#            (::Type{$t1})(x::($ut)) = uitofp($t1, x)
-            promote_rule(::Type{<:$t1}, ::Type{<:$ut}) = $t1
+            (::Type{$ST})(x::$ST2{X}) where X = $ST{$BT(X::$BT2)}()
+            promote_rule(::Type{<:$ST}, ::Type{<:$ST2}) = $ST
         end
     end
 end
@@ -118,9 +121,14 @@ for (ST,BT) in zip(static_float,base_float)
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(/)(V1::$BT, V2::$BT)}()
 
         function Base.mul12(x::$ST, y::$ST)
+            Base.@_inline_meta
             h = x * y
             ifelse(iszero(h) | !isfinite(h), (h, h), Base.canonicalize2(h, fma(x, y, -h)))
         end
+
+        Base.log2(::$ST{V}) where V = $ST{log(V::$BT)/log(2)}()
+        Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
+        Base.round(::$ST{V}, m::RoundingMode) where V = $ST{round(V::$BT, m)}()
 
         function Base.div12(x::$ST, y::$ST)
             # We lose precision if any intermediate calculation results in a subnormal.
@@ -135,6 +143,8 @@ for (ST,BT) in zip(static_float,base_float)
         Base.frexp(::$ST{X}) where X = $ST{frexp(X::$BT)}()
     end
 end
+
+
 
 for (ST,BT) in zip(static_float,base_float)
     for (ST2,BT2) in zip(static_integer,base_integer)
@@ -151,3 +161,7 @@ Base.maxintfloat(::Type{<:SFloat64}) = SFloat64(9007199254740992.)
 Base.maxintfloat(::Type{<:SFloat32}) = SFloat32(16777216.)
 Base.maxintfloat(::Type{<:SFloat16}) = SFloat16(2048f0)
 Base.maxintfloat(x::T) where {T<:SFloat} = maxintfloat(T)
+
+
+
+Base.AbstractFloat(x::SFloat) = x
