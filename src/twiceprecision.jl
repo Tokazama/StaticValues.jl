@@ -321,7 +321,7 @@ Base.narrow(::Type{<:SFloat16}) = SFloat16
 function Base.rat(v::SReal)
     a = d = one(v)
     b = c = zero(v)
-    m = SReal(maxintfloat(Base.narrow(typeof(v)), Int))
+    m = maxintfloat(Base.narrow(typeof(v)), Int)
     _rat(v, v, m, a, b, c, d)
 end
 

@@ -1,6 +1,3 @@
-seek_static_val(::Type{T}, val::Val) where T =
-    error("elements of type $T are not currently supported")
-
 SVal(val::SVal) = val
 
 for (ST,BT) in zip(static_real, base_real)
@@ -13,13 +10,6 @@ for (ST,BT) in zip(static_real, base_real)
         Base.eltype(::Type{<:$ST}) = $BT
         Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
         Base.isfinite(::$ST{V}) where V = isfinite(V::$BT)
-        Base.iszero(::$ST{V}) where V = iszero(V::$BT)
-
-        Base.zero(::$ST) = $ST{zero($BT)}()
-        Base.zero(::Type{<:$ST}) = $ST{zero($BT)}()
-
-        Base.one(::$ST) = $ST{one($BT)}()
-        Base.one(::Type{<:$ST}) = $ST{one($BT)}()
 
         Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
             SVal(fma(X::$BT, Y::$BT, Z::$BT))
@@ -72,6 +62,8 @@ for (ST,BT) in zip(static_real, base_real)
 
         szero(::$BT) = $ST{zero($BT)}()
         szero(::Type{$BT}) = $ST{zero($BT)}()
+
+        seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
     end
 
     # f(static) --> Bool
@@ -138,6 +130,30 @@ for (ST,BT) in zip(static_real, base_real)
         end
     end
 end
+
+for ST in (static_integer..., static_float...)
+    @eval begin
+        const $(Symbol("$(ST)One")) = $ST(1)
+        const $(Symbol("$(ST)Zero")) = $ST(0)
+
+        const $(Symbol("$(ST)OneType")) = typeof($ST(1))
+        const $(Symbol("$(ST)ZeroType")) = typeof($ST(0))
+
+        Base.@pure Base.iszero(x::$(Symbol("$(ST)ZeroType"))) = true
+        Base.@pure Base.iszero(x::$ST{T}) where T = false
+
+
+        Base.@pure Base.isone(x::$(Symbol("$(ST)OneType"))) = true
+        Base.@pure Base.isone(x::$ST{T}) where T = false
+
+        Base.@pure Base.zero(::$ST) = $(Symbol("$(ST)Zero")) = $ST(0)
+        Base.@pure Base.zero(::Type{<:$ST}) = $(Symbol("$(ST)Zero")) = $ST(0)
+
+        Base.@pure Base.one(::$ST) = $(Symbol("$(ST)One"))
+        Base.@pure Base.one(::Type{<:$ST}) = $(Symbol("$(ST)One"))
+    end
+end
+
 
 
 for (ST,BT) in zip(static_integer, base_integer)

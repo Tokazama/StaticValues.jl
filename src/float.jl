@@ -115,7 +115,6 @@ for (ST,BT) in zip(static_float,base_float)
         Base.floatmin(x::$ST) = $ST{floatmin($BT)}()
         Base.floatmin(::Type{$ST}) = $ST{floatmin($BT)}()
 
-
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(/)(V1::$BT, V2::$BT)}()
 
         function Base.mul12(x::$ST, y::$ST)
@@ -136,6 +135,16 @@ for (ST,BT) in zip(static_float,base_float)
         Base.frexp(::$ST{X}) where X = $ST{frexp(X::$BT)}()
     end
 end
+
+for (ST,BT) in zip(static_float,base_float)
+    for (ST2,BT2) in zip(static_integer,base_integer)
+        @eval begin
+            Base.trunc(::Type{$BT2}, x::$ST{X}) where {T,X} = $ST2{trunc($BT2, X::$BT)}()
+        end
+    end
+end
+
+
 Base.unsigned(x::SFloat) = Base.unsigned(SInt(x))
 
 Base.maxintfloat(::Type{<:SFloat64}) = SFloat64(9007199254740992.)

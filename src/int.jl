@@ -11,6 +11,7 @@ struct SUInt64{V} <: Unsigned
         new{V}()
     end
 end
+
 const SUInt{V} = SUInt64{V}
 
 struct SUInt32{V} <: Unsigned
@@ -162,6 +163,7 @@ for (ST,BT) in zip(static_integer, base_integer)
         >>(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{>>(V1::$BT, V2::$BT)}()
         <<(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{<<(V1::$BT, V2::$BT)}()
         >>>(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{>>>(V1::$BT, V2::$BT)}()
+
     end
 end
 
