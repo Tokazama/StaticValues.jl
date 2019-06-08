@@ -28,10 +28,17 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
     static_real_set = ([@inferred(S{B(1)}()) for (S,B) in zip(static_integer, base_integer)]...,)
     base_real_set = ([T(1) for T in (base_integer..., base_float...)]...,)
 
+    @testset "values, eltype" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(values(S)) == B
+            @test eltype(values(S)) == eltype(B)
+        end
+    end
+
     @testset "Addition" begin
         for (S1,B1) in zip(static_real_set, base_real_set)
             for (S2,B2) in zip(static_real_set, base_real_set)
-                @test @inferred(getvalues(S1 + S2)) === B1 + B2
+                @test @inferred(getvalues(S1 + S2)) == B1 + B2
                 @test @inferred(values(S1 + B1)) === B1 + B1
                 @test @inferred(values(S1 + B2)) === B1 + B2
             end
@@ -42,7 +49,7 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
     @testset "Substraction" begin
         for (S1,B1) in zip(static_real_set, base_real_set)
             for (S2,B2) in zip(static_real_set, base_real_set)
-                @test @inferred(values(S1 - S2)) === B1 - B2
+                @test @inferred(S1 - S2) == B1 - B2
             end
         end
     end
@@ -50,7 +57,7 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
     @testset "Multiplication" begin
         for (S1,B1) in zip(static_real_set, base_real_set)
             for (S2,B2) in zip(static_real_set, base_real_set)
-                @test @inferred(values(S1 * S2)) === B1 * B2
+                @test @inferred(S1 * S2) == B1 * B2
             end
         end
     end
@@ -58,8 +65,33 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
     @testset "Division" begin
         for (S1,B1) in zip(static_real_set, base_real_set)
             for (S2,B2) in zip(static_real_set, base_real_set)
-                @test @inferred(values(S1 / S2)) === B1 / B2
+                @test @inferred(S1 / S2) == B1 / B2
             end
+        end
+    end
+
+    @testset "fma" begin
+        for (S1,B1) in zip(static_real_set, base_real_set)
+            @test @inferred(fma(S1, S1, S1)) == fma(B1, B1, B1)
+        end
+    end
+
+    # TODO: Inferrence problem
+    @testset "muladd" begin
+        for (S1,B1) in zip(static_real_set, base_real_set)
+            @test @inferred(muladd(S1, S1, S1)) == muladd(B1, B1, B1)
+        end
+    end
+
+    @testset "fld" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(fld(S,S)) == fld(B,B)
+        end
+    end
+
+    @testset "cld" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(cld(S,S)) == cld(B,B)
         end
     end
 end

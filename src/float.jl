@@ -109,6 +109,10 @@ static_float = (SFloat64,SFloat32,SFloat16)
 
 for (ST,BT) in zip(static_float,base_float)
     @eval begin
+        function Base.muladd(x::$ST{X}, y::$ST{Y}, z::$ST{Z}) where {X,Y,Z}
+            $ST{muladd(X::$BT,Y::$BT,Z::$BT)}()
+        end
+
         Base.prevfloat(x::$ST{V}) where V = $ST{prevfloat(V::$BT)}()
         Base.prevfloat(x::$ST{V}, n::Integer) where V = $ST{prevfloat(V::$BT, n)}()
 
@@ -161,6 +165,9 @@ Base.maxintfloat(::Type{<:SFloat64}) = SFloat64(9007199254740992.)
 Base.maxintfloat(::Type{<:SFloat32}) = SFloat32(16777216.)
 Base.maxintfloat(::Type{<:SFloat16}) = SFloat16(2048f0)
 Base.maxintfloat(x::T) where {T<:SFloat} = maxintfloat(T)
+
+Base.widen(::Type{SFloat16}) = SFloat32
+Base.widen(::Type{SFloat32}) = SFloat64
 
 
 

@@ -13,8 +13,7 @@ for (ST,BT) in zip(static_real, base_real)
         Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
             $ST{fma(X::$BT, Y::$BT, Z::$BT)}()
 
-        Base.muladd(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
-            SVal(muladd(X::$BT, Y::$BT, Z::$BT))
+        #Base.muladd(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} = SVal(muladd(X::$BT, Y::$BT, Z::$BT))
 
         Base.div(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{div(X::$BT, Y::$BT)}()
 
@@ -80,7 +79,8 @@ for (ST,BT) in zip(static_real, base_real)
                 (::Type{<:$ST{<:Any}})(val::$BT2) = $ST{val}()
 
                 Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = $BT
-                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = flipsign(V1::$BT,V2::$BT2)
+                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{flipsign(V1::$BT,V2::$BT2)}()
+                Base.copysign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{copysign(V1::$BT,V2::$BT2)}()
 
                 # converts to the element type but does not change from static/non-static type
                 ofeltype(::Type{$BT}, val::$ST) = val
@@ -111,7 +111,8 @@ for (ST,BT) in zip(static_real, base_real)
                 (::Type{<:$ST{<:Any}})(val::$BT2) = $ST{$BT(val)}()
 
                 Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = promote_type($BT, $BT2)
-                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = flipsign(V1::$BT,V2::$BT2)
+                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{flipsign(V1::$BT,V2::$BT2)}()
+                Base.copysign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{copysign(V1::$BT,V2::$BT2)}()
 
 
                 (::Type{$BT2})(::$ST{V}) where V = $BT2(V::$BT)
