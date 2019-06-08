@@ -109,10 +109,6 @@ static_float = (SFloat64,SFloat32,SFloat16)
 
 for (ST,BT) in zip(static_float,base_float)
     @eval begin
-        function Base.muladd(x::$ST{X}, y::$ST{Y}, z::$ST{Z}) where {X,Y,Z}
-            $ST{muladd(X::$BT,Y::$BT,Z::$BT)}()
-        end
-
         Base.prevfloat(x::$ST{V}) where V = $ST{prevfloat(V::$BT)}()
         Base.prevfloat(x::$ST{V}, n::Integer) where V = $ST{prevfloat(V::$BT, n)}()
 

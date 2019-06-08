@@ -24,7 +24,7 @@ for ST in (static_integer..., static_float...)
 end
 
 """
-    TPVal{Tuple{H,L},T}
+    TPVal{H,L}
 """
 struct TPVal{H,L}
     function TPVal{H,L}() where {H,L}
@@ -169,21 +169,24 @@ end
 
 
 #---conversion
-(::Type{T})(x::TPVal{H,L}) where {T<:Number,H,L} = T(values(x))::T
-
-
 TwicePrecision(::TPVal{H,L}) where {H,L,T} = TwicePrecision(values(H),values(L))
 
-(::Type{<:TPVal{<:Any,T}})(x::TPVal{<:Any,T}) where T = x
-(::Type{<:TPVal{<:Any,T1}})(x::TPVal{Tuple{H,L},T2}) where {T1,H,L,T2} =
-    TPVal{Tuple{T1(H::T2)::T1,T1(L::T2)::T1},T1}()
+(::Type{T})(x::TPVal{H,L}) where {T<:Number,H,L} = T(values(x))::T
 
-#=
-Base.convert(::Type{T}, x::TPVal) where {T<:Number} = T(x)
-Base.convert(::Type{TPVal{T}}, x::Number) where {T} = TPVal{T}(x)
-Base.convert(::Type{TPVal{T}}, x::SVal) where {T} = TPVal{T}(x)
-=#
-
+for (ST1,BT1) in zip((static_float..., static_integer...),(base_float...,base_integer...))
+    for (ST2,BT2) in zip((static_float..., static_integer...),(base_float...,base_integer...))
+        if ST1 == ST2
+            @eval begin
+                (::Type{<:TPVal{<:$ST1,<:$ST1}})(val::TPVal{$ST2{H},$ST2{L}}) where {H,L} = val
+            end
+        else
+            @eval begin
+                (::Type{<:TPVal{<:$ST1,<:$ST1}})(val::TPVal{$ST2{H},$ST2{L}}) where {H,L} =
+                    TPVal{$ST1{$BT1(H::$BT2)},$ST1{$BT1(L::$BT2)}}()
+            end
+        end
+    end
+end
 
 Base.float(x::TPVal{Tuple{H,L},T}) where {H,L,T<:AbstractFloat} = x
 Base.float(x::TPVal{Tuple{H,L},T}) where {H,L,T} = TPVal{Tuple{float(H::T),float(L::T)},float(T)}()

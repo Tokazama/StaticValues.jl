@@ -1,4 +1,4 @@
-function Base.divgcd(x::SInteger,y::SInteger)
+function Base.divgcd(x::SInteger, y::SInteger)
     g = gcd(x,y)
     div(x,g), div(y,g)
 end

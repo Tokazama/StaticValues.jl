@@ -1,7 +1,7 @@
 module StaticValues
 
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
-import Base: ==, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
+import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
 import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
              abs, abs2, isless, max, min, div, rem, promote_rule, @pure
 
@@ -52,7 +52,7 @@ SReal(x::BaseFloat) = SFloat(x)
 SReal(x::Rational) = SRational(x)
 SReal(x::Irrational) = SIrrational(x)
 
-function SReal(val::Val{V}) where V
+function SReal(::Val{V}) where V
     if V isa Integer
         if V isa Unsigned
             if V isa UInt8

@@ -4,6 +4,12 @@
 
 using Random
 
+@testset "gcd" begin
+    for (S,B) in zip(static_integer_set, base_integer_set)
+        @test @inferred(gcd(S,S)) == gcd(B,B)
+    end
+end
+
 @testset "flipsign/copysign" begin
     for y in (-SInt(4), SFloat32(-4), SFloat64(-4.0), big(SFloat64(-4.0)))
         @test flipsign(3, y)  == -3

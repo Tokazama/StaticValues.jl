@@ -108,7 +108,6 @@ SSigned(x::Int32) = SInt32(x)
 SSigned(x::Int64) = SInt64(x)
 SSigned(x::Int128) = SInt128(x)
 
-
 function SSigned(val::Val{V}) where V
     if V isa Int8
         SInt8{V}()
@@ -335,11 +334,9 @@ for (ST,BT) in zip(static_integer, base_integer)
         (|)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(|)(V1::$BT, V2::$BT)}()
         xor(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(|)(V1::$BT, V2::$BT)}()
 
-
         >>(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{>>(V1::$BT, V2::$BT)}()
         <<(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{<<(V1::$BT, V2::$BT)}()
         >>>(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{>>>(V1::$BT, V2::$BT)}()
-
     end
 end
 
@@ -470,3 +467,9 @@ Base.Signed(x::SUInt16{X}) where X = SInt16{Int16(X::UInt16)}()
 Base.Signed(x::SUInt32{X}) where X = SInt32{Int32(X::UInt32)}()
 Base.Signed(x::SUInt64{X}) where X = SInt64{Int64(X::UInt64)}()
 Base.Signed(x::SUInt128{X}) where X = SInt128{Int128(X::UInt128)}()
+
+
+Base.trailing_zeros(x::SInteger{X}) where X = SInt{trailing_zeros(X)}()
+Base.trailing_ones(x::SInteger{X}) where X = SInt{trailing_ones(X)}()
+
+

@@ -29,6 +29,11 @@ for (ST,BT) in zip(static_real, base_real)
 
         Base.minmax(x::$ST{X}, y::$ST{Y}) where {X,Y} = X::$BT > Y::$BT ? (y, x) : (x, y)
 
+        function Base.muladd(x::$ST{X}, y::$ST{Y}, z::$ST{Z}) where {X,Y,Z}
+            $ST{muladd(X::$BT,Y::$BT,Z::$BT)}()
+        end
+
+
         (*)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(*)(V1::$BT, V2::$BT)}()
         (+)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(+)(V1::$BT, V2::$BT)}()
         (-)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(-)(V1::$BT, V2::$BT)}()
@@ -60,6 +65,7 @@ for (ST,BT) in zip(static_real, base_real)
 
         szero(::$BT) = $ST{zero($BT)}()
         szero(::Type{$BT}) = $ST{zero($BT)}()
+
 
         seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
     end
@@ -130,13 +136,37 @@ for (ST,BT) in zip(static_real, base_real)
     end
 end
 
+
+_uvwhile(u::U, v::U) where {U} = u, v
+function _uvwhile(u::U, v::V) where {U,V}
+    if u > v
+        _uvwhile(v, u)
+    else
+        _uvwhile(u, (v-u) >> trailing_zeros(v))
+    end
+end
+
 for (ST,BT) in zip(static_integer, base_integer)
     @eval begin
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SFloat64{(/)(V1::$BT, V2::$BT)}()
         Base.log2(::$ST{V}) where V = SFloat64{log(V::$BT)/log(2)}()
         Base.log10(::$ST{V}) where V = SFloat64{log(V::$BT)/log(10)}()
+
+        function Base.gcd(a::$ST{A}, b::$ST{B}) where {A,B}
+            a == 0 && return abs(b)
+            b == 0 && return abs(a)
+            za = trailing_zeros(a)
+            zb = trailing_zeros(b)
+            k = min(za, zb)
+            u, v = _uvwhile(unsigned(abs(a >> za)), unsigned(abs(b >> zb)))
+            r = u << k
+            # T(r) would throw InexactError; we want OverflowError instead
+            r > typemax($BT) && __throw_gcd_overflow(a, b)
+            r % $BT
+        end
     end
 end
+
 
 Base.promote_eltype(x::SVal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
 Base.promote_eltype(x::BaseNumber, y::SVal) = promote_type(eltype(x), eltype(y))

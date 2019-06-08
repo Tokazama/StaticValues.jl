@@ -118,4 +118,5 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
             @test @inferred(minmax(S,S)) == minmax(B,B)
         end
     end
+
 end
