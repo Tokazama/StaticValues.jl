@@ -4,6 +4,19 @@
 
 using Random
 
+# FIXME: type inference
+@testset "gcdx" begin
+    @test @inferred(gcdx(SInt(12), SInt(42))) == (6, -3, 1)
+    @test @inferred(gcdx(SInt(240), SInt(46))) == (2, -9, 47)
+end
+
+# FIXME: type inference
+@testset "invmod" begin
+    @test @inferred(invmod(SInt(2), SInt(5))) == 3
+    @test @inferred(invmod(SInt(2), SInt(3))) == 2
+    @test @inferred(invmod(SInt(5), SInt(6))) == 3
+end
+
 @testset "gcd" begin
     for (S,B) in zip(static_integer_set, base_integer_set)
         @test @inferred(gcd(S,S)) == gcd(B,B)

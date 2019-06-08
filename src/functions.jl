@@ -8,7 +8,6 @@ for (ST,BT) in zip(static_real, base_real)
 
         Base.eltype(::$ST) = $BT
         Base.eltype(::Type{<:$ST}) = $BT
-        Base.isfinite(::$ST{V}) where V = isfinite(V::$BT)
 
         Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
             $ST{fma(X::$BT, Y::$BT, Z::$BT)}()
@@ -136,33 +135,124 @@ for (ST,BT) in zip(static_real, base_real)
     end
 end
 
+Base.isfinite(s::SNumber) = isfinite(values(s))
 
-_uvwhile(u::U, v::U) where {U} = u, v
-function _uvwhile(u::U, v::V) where {U,V}
+
+
+
+#=
+FIXME:
+Weird inference error on gcdx
+
+a = SInt(9)
+b = SInt(-9)
+
+julia> @inferred(gcdx(a,b))
+(9, 0, -1)
+
+
+a> a = SInt(4)
+4
+
+julia> b = SInt(-8)
+-8
+
+julia> @inferred(gcdx(a,b))
+(4, 1, 0)
+
+a = SInt(6)
+b = SInt(-9)
+julia> @inferred(gcdx(a,b))
+ERROR: return type Tuple{SInt64{3},SInt64{-1},SInt64{-1}} does not match inferred return type Tuple{SInt64{_A} where _A,SInt64{_A} where _A,SInt64{_A} where _A}
+=#
+_gcdxrem(x::Tuple{A,B}) where {A<:SInteger,B<:SInteger} = (x[2], rem(x[1], x[2]))
+_gcdxsub(q::SInteger, x::Tuple{A,B}) where {A<:SInteger,B<:SInteger} = (x[2], x[1] - q*x[2])
+
+function _gcdxwhile(ab::Tuple{<:SInteger,<:SInteger},
+                     s::Tuple{<:SInteger,<:SInteger},
+                     t::Tuple{<:SInteger,<:SInteger})
+    _gcdxwhile(_gcdxrem(ab), _gcdxsub(div(ab[1], ab[2]), s), _gcdxsub(div(ab[1], ab[2]), t))
+end
+
+function _gcdxwhile(ab::Tuple{<:SIntegerNegOneType,<:SIntegerZeroType},
+                     s::Tuple{<:SInteger,<:SInteger},
+                     t::Tuple{<:SInteger,<:SInteger})
+    return -ab[1], -s[1], -t[1]
+end
+
+function _gcdxwhile(ab::Tuple{<:SInteger,<:SIntegerZeroType},
+                     s::Tuple{<:SInteger,<:SInteger},
+                     t::Tuple{<:SInteger,<:SInteger})
+    return ab[1], s[1], t[1]
+end
+
+# only alternating `A` and `B` so that they eventually get promoted
+function Base.gcdx(a::A, b::B) where {A<:SInteger,B<:SInteger}
+    _gcdxwhile((a, b), (oneunit(A), zero(B)), (zero(A), oneunit(B)))
+end
+
+
+_gcdwhile(u::U, v::U) where {U} = u, v
+function _gcdwhile(u::U, v::V) where {U,V}
     if u > v
-        _uvwhile(v, u)
+        _gcdwhile(v, u)
     else
-        _uvwhile(u, (v-u) >> trailing_zeros(v))
+        _gcdwhile(u, (v-u) >> trailing_zeros(v))
     end
 end
+
+Base.gcd(a::SIntegerZeroType, b::SInteger) = abs(b)
+Base.gcd(a::SIntegerZeroType, b::SIntegerZeroType) = abs(b)
+Base.gcd(a::SInteger, b::SIntegerZeroType) = abs(b) = abs(a)
+
+function Base.gcd(a::SInteger, b::SInteger)
+    za = trailing_zeros(a)
+    zb = trailing_zeros(b)
+    k = min(za, zb)
+    u, v = _gcdwhile(unsigned(abs(a >> za)), unsigned(abs(b >> zb)))
+    r = u << k
+    # T(r) would throw InexactError; we want OverflowError instead
+    r > typemax(eltype(a)) && Base.__throw_gcd_overflow(a, b)
+    r % eltype(a)
+end
+
+Base.powermod(x::SInteger, p::SIntegerZeroType, m::SInteger) = mod(one(m), m)
+Base.powermod(x::SInteger, p::SIntegerNegOneType, m::SInteger) = powermod(invmod(x, m), -p, m)
+Base.powermod(x::SInteger, p::SInteger, m::SIntegerOneType) = zero(m)
+Base.powermod(x::SInteger, p::SInteger, m::SIntegerNegOneType) = zero(m)
+
+Base.powermod(x::SInteger, p::SInteger, m::SInteger) =
+    _powermod(one(m), p, m, prevpow(oftype(p, 2), p),oftype(m, mod(x,m)))
+
+function _powermod(r::SInteger, p::SInteger, m::SInteger, t::SInteger, b::SInteger)
+    if p >= t
+        _powermod(mod(widemul(r,b), m), p - t, m, t, b)
+    else
+        _powermod2(r, p, m, t >>> SOne, b)
+    end
+end
+
+_powermod2(r::SInteger, p::SInteger, m::SInteger, t::SIntegerNegOneType, b::SInteger) = r
+_powermod2(r::SInteger, p::SInteger, m::SInteger, t::SInteger, b::SInteger) =
+    _powermod(mod(widemul(r,r),m), p, m, t, b)
+
 
 for (ST,BT) in zip(static_integer, base_integer)
     @eval begin
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SFloat64{(/)(V1::$BT, V2::$BT)}()
         Base.log2(::$ST{V}) where V = SFloat64{log(V::$BT)/log(2)}()
         Base.log10(::$ST{V}) where V = SFloat64{log(V::$BT)/log(10)}()
+        Base.lcm(a::$ST{A}, b::$ST{B}) where {A,B} = $ST{lcm(A::$BT,B::$BT)}()
 
-        function Base.gcd(a::$ST{A}, b::$ST{B}) where {A,B}
-            a == 0 && return abs(b)
-            b == 0 && return abs(a)
-            za = trailing_zeros(a)
-            zb = trailing_zeros(b)
-            k = min(za, zb)
-            u, v = _uvwhile(unsigned(abs(a >> za)), unsigned(abs(b >> zb)))
-            r = u << k
-            # T(r) would throw InexactError; we want OverflowError instead
-            r > typemax($BT) && __throw_gcd_overflow(a, b)
-            r % $BT
+        function Base.invmod(n::$ST, m::$ST)
+            g, x, y = gcdx(n, m)
+            g != 1 && throw(DomainError((n, m), "Greatest common divisor is $g."))
+            m == 0 && throw(DomainError(m, "`m` must not be 0."))
+            # Note that m might be negative here.
+            # For unsigned T, x might be close to typemax; add m to force a wrap-around.
+            r = mod(x + m, m)
+            # The postcondition is: mod(r * n, m) == mod(T(1), m) && div(r, m) == 0
+            r
         end
     end
 end
@@ -201,3 +291,16 @@ Base.nbitslen(::Type{<:SFloat64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
 
 Base.AbstractFloat(x::SInteger) = SFloat64(x)
 Base.oneunit(x::SNumber) = one(x)
+
+
+# TODO
+# - ispow2
+# - isqrt
+# - factorial
+# - binomial
+# - all string things
+#
+# we get the following for free
+# - nextpow
+# - prevpow
+# - ndigits

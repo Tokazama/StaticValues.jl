@@ -297,6 +297,13 @@ const SInt8ZeroType = typeof(SInt8{Int8(0)}())
 const SOne = SInt{1}()
 const SZero = SInt{0}()
 
+
+SIntegerZeroType = Union{SInt8ZeroType,SUInt8ZeroType,SInt16ZeroType,SUInt16ZeroType,SInt32ZeroType,
+                     SUInt32ZeroType,SInt64ZeroType,SUInt64ZeroType,SInt128ZeroType,SUInt128ZeroType}
+SIntegerOneType = Union{SInt8OneType,SUInt8OneType,SInt16OneType,SUInt16OneType,SInt32OneType,
+                    SUInt32OneType,SInt64OneType,SUInt64OneType,SInt128OneType,SUInt128OneType}
+SIntegerNegOneType = Union{SInt8{-Int8(1)},SInt16{-Int16(1)},SInt32{-Int32(1)},SInt64{-1},SInt128{-Int128(1)}}
+
 Base.leading_zeros(::SSigned{V}) where V = leading_zeros(V)
 Base.leading_ones(::SSigned{V}) where V = leading_ones(V)
 
@@ -472,4 +479,11 @@ Base.Signed(x::SUInt128{X}) where X = SInt128{Int128(X::UInt128)}()
 Base.trailing_zeros(x::SInteger{X}) where X = SInt{trailing_zeros(X)}()
 Base.trailing_ones(x::SInteger{X}) where X = SInt{trailing_ones(X)}()
 
-
+Base.widen(::Type{<:SInt8{X}}) where X = SInt16
+Base.widen(::Type{<:SInt16{X}}) where X = SInt32
+Base.widen(::Type{<:SInt32{X}}) where X= SInt64
+Base.widen(::Type{<:SInt64{X}}) where X = SInt128
+Base.widen(::Type{<:SUInt8{X}}) where X = SUInt16
+Base.widen(::Type{<:SUInt16{X}}) where X = SUInt32
+Base.widen(::Type{<:SUInt32{X}}) where X= SUInt64
+Base.widen(::Type{<:SUInt64{X}}) where X = SUInt128
