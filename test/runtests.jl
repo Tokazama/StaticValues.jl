@@ -94,4 +94,28 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
             @test @inferred(cld(S,S)) == cld(B,B)
         end
     end
+
+    @testset "rem" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(rem(S,S)) == rem(B,B)
+        end
+    end
+
+    @testset "max" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(max(S,S)) == max(B,B)
+        end
+    end
+
+    @testset "min" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(min(S,S)) == min(B,B)
+        end
+    end
+
+    @testset "minmax" begin
+        for (S,B) in zip(static_real_set, base_real_set)
+            @test @inferred(minmax(S,S)) == minmax(B,B)
+        end
+    end
 end
