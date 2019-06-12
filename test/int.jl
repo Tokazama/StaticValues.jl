@@ -18,6 +18,13 @@ end
 end
 
 @testset "gcd" begin
+    @test gcd(SInt(6),SInt(9)) == 3
+    @test gcd(SInt(6),SInt(9)) == 3
+
+  3
+
+  julia> gcd(6,-9)
+  3
     for (S,B) in zip(static_integer_set, base_integer_set)
         @test @inferred(gcd(S,S)) == gcd(B,B)
     end

@@ -123,7 +123,7 @@ tpval(::Type{T}, hi::Real) where T = tpval(T, hi, zero(hi))
 tpval(::Type{T}, hi::Real, lo::Real) where T = tpval(T, promote(hi, lo)...)
 
 tpval(::Type{T}, hi::T, lo::T) where T<:BaseReal = TwicePrecision{T}(hi, lo)
-tpval(::Type{T}, frac::Tuple{<:SNumber,<:SNumber}, n::SInteger) where T = TPVal(T, frac, n)
+tpval(::Type{T}, frac::Tuple{<:SReal,<:SReal}, n::SInteger) where T = TPVal(T, frac, n)
 tpval(::Type{T}, frac::Tuple{<:BaseNumber,<:BaseNumber}, n::Number) where T = TwicePrecision{T}(frac, values(n))
 
 tpval(::Type{T}, nd::Tuple{N,D}) where {N<:SInteger,D<:SInteger,T<:Union{Float16,Float32}} =
@@ -131,15 +131,14 @@ tpval(::Type{T}, nd::Tuple{N,D}) where {N<:SInteger,D<:SInteger,T<:Union{Float16
 
 tpval(::Type{T}, ::Tuple{N,D}) where {T,N<:SReal,D<:SReal} = TPVal(ofeltype(T, N())) / D()
 
-tpval(::Type{T}, nd::Tuple{N,D}, nb::Integer) where {T,N<:SNumber,D<:SNumber} = Base.twiceprecision(TPVal(T, nd), nb)
+tpval(::Type{T}, nd::Tuple{N,D}, nb::Integer) where {T,N<:SReal,D<:SReal} = Base.twiceprecision(TPVal(T, nd), nb)
 
 
 
 tpval(hi::SFloat64{H}, lo::SFloat64{L}) where {H,L} = TPVal{SFloat64{H},SFloat64{L}}()
 tpval(hi::SFloat32{H}, lo::SFloat32{L}) where {H,L} = TPVal{SFloat32{H},SFloat32{L}}()
 tpval(hi::SFloat16{H}, lo::SFloat16{L}) where {H,L} = TPVal{SFloat16{H},SFloat16{L}}()
-tpval(::Type{T}, frac::Tuple{N,D}) where {T,N<:SNumber,D<:SNumber} = TPVal(T, frac)
-tpval(x::SNumber) = TPVal(x)
+tpval(x::SReal) = TPVal(x)
 tpval(x::BaseNumber) = TwicePrecision(x)
 
 tpval(nd::Tuple{N,D}, nb::Integer) where {T,N,D} = Base.twiceprecision(tpval(nd), nb)
@@ -244,7 +243,7 @@ end
 *(v::TwicePrecision, x::TPVal) = x * v
 *(v::Number, x::TPVal) = x * v
 
-function *(x::TPVal{H,L}, v::SNumber) where {H,L}
+function *(x::TPVal{H,L}, v::SReal) where {H,L}
     v == 0 && return TPVal(H() * v, L() * v)
     x * TPVal(oftype(H() * v, v))
 end

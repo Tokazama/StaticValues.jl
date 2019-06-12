@@ -37,13 +37,12 @@ const BaseReal = Union{base_real..., Bool}
 base_number = (base_real..., Complex)
 const BaseNumber = Union{base_number...}
 
-include("int.jl")
-include("float.jl")
+include("utils.jl")
+include("types.jl")
+include("intfuncs.jl")
+include("floatfuncs.jl")
 include("rational.jl")
 include("irrational.jl")
-include("complex.jl")
-
-static_real = (static_integer..., static_float..., SRational, SIrrational)
 
 const SReal{V} = Union{SInteger{V},SFloat{V},SRational{V},SIrrational{V}}
 
@@ -95,6 +94,15 @@ function SReal(::Val{V}) where V
         SIrrational(val)
     end
 end
+
+Base.promote_eltype(x::SReal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::BaseNumber, y::SReal) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::SReal, y::SReal) = promote_type(eltype(x), eltype(y))
+include("twiceprecision.jl")
+
+include("complex.jl")
+static_real = (static_integer..., static_float..., SRational, SIrrational)
+
 
 const SNumber{V} = Union{SComplex{V},SReal{V}}
 
@@ -150,7 +158,6 @@ function SNumber(val::Val{V}) where V
 end
 
 include("char.jl")
-include("twiceprecision.jl")
 
 const SVal{V} = Union{SNumber{V},SChar{V},TPVal{V}}
 
@@ -169,8 +176,8 @@ function SVal(val::Val{V}) where V
 end
 
 #include("promote.jl")
-include("functions.jl")
 
+include("functions.jl")
 
 const AbstractInt128 = Union{SInt128,Int128}
 const AbstractInt64  = Union{SInt64,Int64}
@@ -187,6 +194,5 @@ const AbstractUInt8   = Union{SUInt8,UInt8}
 const AbstractFloat64 = Union{SFloat64,Float64}
 const AbstractFloat32 = Union{SFloat32,Float32}
 const AbstractFloat16 = Union{SFloat16,Float16}
-
 
 end

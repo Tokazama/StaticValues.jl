@@ -1,76 +1,59 @@
-struct SFloat64{V} <: AbstractFloat
-    function SFloat64{V}() where V
-        !(V isa Float64) && throw(ArgumentError("SFloat64 only supports static Float64 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SFloat32{V} <: AbstractFloat
-    function SFloat32{V}() where V
-        !(V isa Float32) && throw(ArgumentError("SFloat32 only supports static Float32 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SFloat16{V} <: AbstractFloat
-    function SFloat16{V}() where V
-        !(V isa Float16) && throw(ArgumentError("SFloat16 only supports static Float16 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SFloat{V} = Union{SFloat16{V},SFloat32{V},SFloat64{V}}
-
-SFloat(x::Float16) = SFloat16{x}()
-SFloat(x::Float32) = SFloat32{x}()
-SFloat(x::Float64) = SFloat64{x}()
-SFloat(x::BaseNumber) = SFloat(float(x))
-
-function SFloat(val::Val{V}) where V
-    if V isa Float16
-        SFloat16{V}()
-    elseif V isa Float32
-        SFloat32{V}()
-    else
-        SFloat64{V}()
-    end
-end
-
-const SFloat64One = SFloat64{1.0}()
-const SFloat64Zero = SFloat64{0.0}()
-const SFloat64OneType = typeof(SFloat64{1.0}())
-const SFloat64ZeroType = typeof(SFloat64{0.0}())
-
-const SFloat32One = SFloat32{Float32(1)}()
-const SFloat32Zero = SFloat32{Float32(0)}()
-const SFloat32OneType = typeof(SFloat32{Float32(1)}())
-const SFloat32ZeroType = typeof(SFloat32{Float32(0)}())
-
-const SFloat16One = SFloat16{Float16(1)}()
-const SFloat16Zero = SFloat16{Float16(0)}()
-const SFloat16OneType = typeof(SFloat16{Float16(1)}())
-const SFloat16ZeroType = typeof(SFloat16{Float16(0)}())
-
-Base.show(io::IO, val::SFloat) = print(io, values(val))
-
-promote_rule(::Type{SFloat16}, ::Type{SBool}) = SFloat16
-promote_rule(::Type{<:SFloat32}, ::Type{<:SFloat16}) = SFloat32
-promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat16}) = SFloat64
-promote_rule(::Type{<:SFloat64}, ::Type{<:SFloat32}) = SFloat64
 
 # TODO: SInt128 promotions are type unstable!
-for (ST,BT) in ((SFloat16, Float16), (SFloat32,Float32), (SFloat64,Float64))
-    for (ST2,BT2) in zip(static_integer, base_integer)
-        @eval begin
-            (::Type{$ST})(x::$ST2{X}) where X = $ST{$BT(X::$BT2)}()
-            promote_rule(::Type{<:$ST}, ::Type{<:$ST2}) = $ST
-        end
-    end
-end
-
 #(::Type{T})(x::Float16) where {T<:Integer} = T(Float32(x))
 
 #Bool(x::Real) = x==0 ? false : x==1 ? true : throw(InexactError(:Bool, Bool, x))
+
+
+Base.reinterpret(::Type{<:SUnsigned}, x::SFloat16) = reinterpret(SUInt16, x)
+Base.reinterpret(::Type{<:SSigned}, x::SFloat16) = reinterpret(SInt16, x)
+
+Base.reinterpret(::Type{<:SInt16}, x::SFloat16{X}) where X = SInt16{Base.bitcast(Int16, X::Float16)}()
+Base.reinterpret(::Type{<:SUInt16}, x::SFloat16{X}) where X = SUInt16{Base.bitcast(UInt16, X::Float16)}()
+
+Base.reinterpret(::Type{<:SFloat32}, x::SUInt32{X}) where X = SFloat32{Base.bitcast(Float32, X::UInt32)}()
+Base.reinterpret(::Type{<:SFloat32}, x::SInt32{X}) where X = SFloat32{Base.bitcast(Float32, X::Int32)}()
+
+
+
+function _sfloat32(exp::SUInt32ZeroType, sig::SUInt32, sign::SUInt32)
+    __sfloat32(SOne, SUInt16(0x0200), sig, sign)
+end
+function __sfloat32(n_bit::SInt, bit::SUInt16, sig::SUInt32ZeroType, sign::SUInt32)
+    if (bit & sig) == 0
+        __sfloat32(n_bit, bit, sig, sign)
+    else
+        return (sign << SInt(31)) | (((-SInt(14) - n_bit + SInt(127)) << SInt(23)) % SUInt32) | (((sig & (~bit)) << n_bit) << (SInt(23) - SInt(10)))
+    end
+end
+
+#=
+ival = reinterpret(UInt16, Float16(3))
+(ival & 0x7c00) >> 10
+
+ival = reinterpret(SUInt16, SFloat16(1))
+exp = (ival & SUInt16{0x7c00}()) >> SInt{10}()
+sig = (ival & SUInt16{0x3ff}()) >> SZero
+sign = (ival & SUInt16{0x8000}()) >> SInt{15}()
+
+(ival & SUInt16(0x7c00)) >> SInt(10)
+(ival & 0x7c00) >> 10
+=#
+
+_sfloat32(exp::SUInt32ZeroType,     sig::SUInt32ZeroType, sign::SUInt32) = (sign << SInt(31)) | exp | sig
+_sfloat32(exp::SUInt32{0x0000001f}, sig::SUInt32ZeroType, sign::SUInt32ZeroType) = SUInt32(0x7f800000)
+_sfloat32(exp::SUInt32{0x0000001f}, sig::SUInt32ZeroType, sign::SUInt32) = 0xff800000
+_sfloat32(exp::SUInt32{0x0000001f}, sig::SUInt32,         sign::SUInt32) = SUInt32(0x7fc00000) | (sign<<SInt(31)) | (sig<<(SInt(13)))
+_sfloat32(exp::SUInt32,             sig::SUInt32,         sign::SUInt32) = (sign << SInt(31)) | (((exp + SInt(112)) << SInt(23)) % SUInt32) | (sig << SInt(13))
+
+
+
+function SFloat32(val::SFloat16)
+    local ival::SUInt32 = reinterpret(SUInt16, val)
+    return reinterpret(SFloat32, _sfloat32((ival & SUInt16{0x7c00}()) >> SInt{10}(),
+                                           (ival & SUInt16{0x3ff}()) >> SZero,
+                                           (ival & SUInt16{0x8000}()) >> SInt{15}()))
+end
 
 
 Base.sign_mask(::Type{<:SFloat64})        = SUInt64(0x8000_0000_0000_0000)
@@ -104,6 +87,8 @@ exponent_bits(::Type{T}) where T<:IEEESFloat = SInt(sizeof(eltype(T))*8 - signif
 exponent_bias(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_one(T) >> significand_bits(T))
 exponent_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> significand_bits(T)) - exponent_bias(T)
 exponent_raw_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> significand_bits(T))
+
+Base.:(-)(x::SFloat32{V1}, y::SFloat16{V2}) where {V1,V2} = SFloat32{(-)(V1::Float32, V2::Float16)::Float32}()
 
 static_float = (SFloat64,SFloat32,SFloat16)
 
