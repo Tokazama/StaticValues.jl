@@ -83,15 +83,16 @@ Base.bswap(x::SUInt8) = x
                _gcdxsub(div(ab[1],ab[2]), t))
 end
 
-@inline function _gcdxwhile(
-    ab::Tuple{A,B},s::Tuple{S0,S1},t::Tuple{T0,T1}
+@inline function _gcdxwhile(ab::Tuple{A,B},
+                            s::Tuple{S0,S1},
+                            t::Tuple{T0,T1}
    ) where {A<:SInteger,B<:SIntegerZeroType,
             S0<:SInteger,S1<:SInteger,
             T0<:SInteger,T1<:SInteger}
     if ab[1] < 0
-        (-ab[1], -s[1], -t[1])
+        return (-ab[1], -s[1], -t[1])
     else
-        (ab[1], s[1], t[1])
+        return (ab[1], s[1], t[1])
     end
 end
 function Base.gcdx(a::SInteger, b::SInteger)
@@ -100,19 +101,6 @@ end
 
 # only alternating `A` and `B` so that they eventually get promoted
 #Tuple{SInt64{_1} where _1,Union{SInt64{-1}, SInt64{1}},SInt64{0}}
-
-@inline _gcdwhile(u::U, v::U) where {U<:SInteger} = u, v
-function _gcdwhile(u::SInteger, v::SInteger)
-    if u > v
-        _gcdwhile(v, u)
-    end
-    _gcdwhile(u, (v-u) >> trailing_zeros(v-u))
-end
-
-
-Base.gcd(a::A, b::SInteger) where A<:SIntegerZeroType = abs(b)
-Base.gcd(a::A, b::B) where {A<:SIntegerZeroType,B<:SIntegerZeroType} = abs(b)
-Base.gcd(a::SInteger, b::B) where B<:SIntegerZeroType = abs(a)
 
 """
     gcd(::Union{Integer,SInteger}, Union{Integer,SInteger})
@@ -148,6 +136,18 @@ function Base.gcd(a::SInteger, b::SInteger)
     r % typeof(a)
 end
 
+@inline _gcdwhile(u::U, v::U) where {U<:SInteger} = u, v
+function _gcdwhile(u::SInteger, v::SInteger)
+    if u > v
+        _gcdwhile(v, u)
+    end
+    _gcdwhile(u, (v-u) >> trailing_zeros(v-u))
+end
+
+Base.gcd(a::SIntegerZeroType, b::SInteger) = abs(b)
+Base.gcd(a::SIntegerZeroType, b::SIntegerZeroType) = abs(b)
+Base.gcd(a::SInteger,         b::SIntegerZeroType) = abs(a)
+
 
 """
 # StaticValues Examples
@@ -156,6 +156,7 @@ julia> powermod(SInt(2), SInt(6), SInt(5)) === SInt(4)
 true
 ```
 """
+#=
 Base.powermod(x::SInteger, p::SInteger, m::SInteger) =
     oftype(m, _powermod(one(m), p, m, prevpow(oftype(p, 2), p),oftype(m, mod(x,m))))
 
@@ -177,7 +178,7 @@ function _powermod2(r::SInteger, p::SInteger, m::SInteger, t::SInteger, b::SInte
     if t <= 0
         return r
     else
-        return _powermod(mod(widemul(r,r),m), p, m, t, b)
+        return _powermod(mod(widemul(r, r), m), p, m, t, b)
     end
 end
 
@@ -189,6 +190,7 @@ function _powermod2(r::SInt128, p::SInteger, m::SInteger, t::SInteger, b::SInteg
         return _powermod(mod(r*r, m), p, m, t, b)
     end
 end
+
 function _powermod(r::SInt128, p::SInteger, m::SInteger, t::SInteger, b::SInteger)
     if p >= t
         _powermod(mod(r * b, m), p - t, m, t, b)
@@ -196,10 +198,6 @@ function _powermod(r::SInt128, p::SInteger, m::SInteger, t::SInteger, b::SIntege
         _powermod2(r, p, m, t >>> SOne, b)
     end
 end
-
+=#
 #_prevpow2(x::Unsigned) = one(x) << unsigned((sizeof(x)<<3)-leading_zeros(x)-SOne)
 #_prevpow2(x::Integer) = reinterpret(typeof(x), x < 0 ? -_prevpow2(unsigned(-x)) : _prevpow2(unsigned(x)))
-
-# TODO:
-# - factorial
-# - binomial

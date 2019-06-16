@@ -14,25 +14,11 @@ truncbits(x::F, nb) where {F<:Union{SFloat16, SFloat32, SFloat64}} =
     truncmask(x, Base.typemax(Base.uinttype(F)) << nb)
 
 
-for ST in (static_integer..., static_float...)
+for (ST,BT) in S2B
     @eval begin
         function Base.add12(x::$ST, y::$ST)
             x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
             canonicalize2(x, y)
-        end
-    end
-end
-
-"""
-    TPVal{H,L}
-"""
-struct TPVal{H,L}
-    function TPVal{H,L}() where {H,L}
-        if eltype(H) == eltype(L)
-            return new{H,L}()
-        else
-            error("high and low precision values must be of the same type but got,
-                  $(eltype(H)) and $(eltype(L)).")
         end
     end
 end
@@ -172,8 +158,8 @@ TwicePrecision(::TPVal{H,L}) where {H,L,T} = TwicePrecision(values(H),values(L))
 
 (::Type{T})(x::TPVal{H,L}) where {T<:Number,H,L} = T(values(x))::T
 
-for (ST1,BT1) in zip((static_float..., static_integer...),(base_float...,base_integer...))
-    for (ST2,BT2) in zip((static_float..., static_integer...),(base_float...,base_integer...))
+for (ST1,BT1) in S2B
+    for (ST2,BT2) in S2B
         if ST1 == ST2
             @eval begin
                 (::Type{<:TPVal{<:$ST1,<:$ST1}})(val::TPVal{$ST2{H},$ST2{L}}) where {H,L} = val

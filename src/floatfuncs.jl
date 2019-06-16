@@ -14,7 +14,7 @@ Base.reinterpret(::Type{<:SUInt16}, x::SFloat16{X}) where X = SUInt16{Base.bitca
 Base.reinterpret(::Type{<:SFloat32}, x::SUInt32{X}) where X = SFloat32{Base.bitcast(Float32, X::UInt32)}()
 Base.reinterpret(::Type{<:SFloat32}, x::SInt32{X}) where X = SFloat32{Base.bitcast(Float32, X::Int32)}()
 
-
+#=
 
 function _sfloat32(exp::SUInt32ZeroType, sig::SUInt32, sign::SUInt32)
     __sfloat32(SOne, SUInt16(0x0200), sig, sign)
@@ -54,6 +54,7 @@ function SFloat32(val::SFloat16)
                                            (ival & SUInt16{0x3ff}()) >> SZero,
                                            (ival & SUInt16{0x8000}()) >> SInt{15}()))
 end
+=#
 
 
 Base.sign_mask(::Type{<:SFloat64})        = SUInt64(0x8000_0000_0000_0000)
@@ -88,51 +89,16 @@ exponent_bias(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_one(T) >> sign
 exponent_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> significand_bits(T)) - exponent_bias(T)
 exponent_raw_max(::Type{T}) where T<:IEEESFloat = SInt(Base.exponent_mask(T) >> significand_bits(T))
 
-Base.:(-)(x::SFloat32{V1}, y::SFloat16{V2}) where {V1,V2} = SFloat32{(-)(V1::Float32, V2::Float16)::Float32}()
+#Base.:(-)(x::SFloat32{V1}, y::SFloat16{V2}) where {V1,V2} = SFloat32{(-)(V1::Float32, V2::Float16)::Float32}()
 
-static_float = (SFloat64,SFloat32,SFloat16)
-
-for (ST,BT) in zip(static_float,base_float)
+for (ST,BT) in SF2BF
     @eval begin
-        Base.prevfloat(x::$ST{V}) where V = $ST{prevfloat(V::$BT)}()
-        Base.prevfloat(x::$ST{V}, n::Integer) where V = $ST{prevfloat(V::$BT, n)}()
-
-        Base.floatmax(x::$ST) = $ST{floatmax($BT)}()
-        Base.floatmax(::Type{$ST}) = $ST{floatmax($BT)}()
-
-        Base.floatmin(x::$ST) = $ST{floatmin($BT)}()
-        Base.floatmin(::Type{$ST}) = $ST{floatmin($BT)}()
-
-        (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(/)(V1::$BT, V2::$BT)}()
-
-        function Base.mul12(x::$ST, y::$ST)
-            Base.@_inline_meta
-            h = x * y
-            ifelse(iszero(h) | !isfinite(h), (h, h), Base.canonicalize2(h, fma(x, y, -h)))
-        end
-
-        Base.log2(::$ST{V}) where V = $ST{log(V::$BT)/log(2)}()
-        Base.log10(::$ST{V}) where V = $ST{log(V::$BT)/log(10)}()
-        Base.round(::$ST{V}, m::RoundingMode) where V = $ST{round(V::$BT, m)}()
-
-        function Base.div12(x::$ST, y::$ST)
-            # We lose precision if any intermediate calculation results in a subnormal.
-            # To prevent this from happening, standardize the values.
-            xs, xe = frexp(x)
-            ys, ye = frexp(y)
-            r = xs / ys
-            rh, rl = canonicalize2(r, -fma(r, ys, -xs)/ys)
-            ifelse(iszero(r) | !isfinite(r), (r, r), (ldexp(rh, xe-ye), ldexp(rl, xe-ye)))
-        end
-
-        Base.frexp(::$ST{X}) where X = $ST{frexp(X::$BT)}()
+        Base.ldexp(::$ST{X}, n::SInteger) where X = $ST{ldexp(X::$BT, values(n))}()
     end
 end
 
-
-
-for (ST,BT) in zip(static_float,base_float)
-    for (ST2,BT2) in zip(static_integer,base_integer)
+for (ST,BT) in SF2BF
+    for (ST2,BT2) in SI2BI
         @eval begin
             Base.trunc(::Type{$BT2}, x::$ST{X}) where {T,X} = $ST2{trunc($BT2, X::$BT)}()
         end
@@ -142,14 +108,10 @@ end
 
 Base.unsigned(x::SFloat) = Base.unsigned(SInt(x))
 
-Base.maxintfloat(::Type{<:SFloat64}) = SFloat64(9007199254740992.)
-Base.maxintfloat(::Type{<:SFloat32}) = SFloat32(16777216.)
-Base.maxintfloat(::Type{<:SFloat16}) = SFloat16(2048f0)
 Base.maxintfloat(x::T) where {T<:SFloat} = maxintfloat(T)
 
 Base.widen(::Type{SFloat16}) = SFloat32
 Base.widen(::Type{SFloat32}) = SFloat64
-
 
 
 Base.AbstractFloat(x::SFloat) = x

@@ -1,125 +1,3 @@
-struct SUInt128{V} <: Unsigned
-    function SUInt128{V}() where V
-        !(typeof(V) === UInt128) && throw(ArgumentError("SUInt128 only supports static UInt128 storage, got $(typeof(V))"))
-        return new{V}()
-    end
-end
-
-struct SUInt64{V} <: Unsigned
-    function SUInt64{V}() where V
-        !(typeof(V) === UInt64) && throw(ArgumentError("SUInt64 only supports static UInt64 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SUInt{V} = SUInt64{V}
-
-struct SUInt32{V} <: Unsigned
-    function SUInt32{V}() where V
-        !(typeof(V) === UInt32) && throw(ArgumentError("SUInt32 only supports static UInt32 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SUInt16{V} <: Unsigned
-    function SUInt16{V}() where V
-        !(typeof(V) === UInt16) && throw(ArgumentError("SUInt16 only supports static UInt16 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SUInt8{V} <: Unsigned
-    function SUInt8{V}() where V
-        !(typeof(V) === UInt8) && throw(ArgumentError("SUInt8 only supports static UInt8 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SUnsigned{V} = Union{SUInt8{V},SUInt16{V},SUInt32{V},SUInt64{V},SUInt128{V}}
-
-SUnsigned(x::UInt8) = SUInt8(x)
-SUnsigned(x::UInt16) = SUInt16(x)
-SUnsigned(x::UInt32) = SUInt32(x)
-SUnsigned(x::UInt64) = SUInt64(x)
-SUnsigned(x::UInt128) = SUInt128(x)
-
-
-function SUnsigned(val::Val{V}) where V
-    if V isa UInt8
-        SUInt8{V}()
-    elseif V isa UInt16
-        SUInt16{V}()
-    elseif V isa UInt32
-        SUInt32{V}()
-    elseif V isa UInt128
-        SUInt128{V}()
-    else
-        SUInt64{V}()
-    end
-end
-
-
-
-# SSigned
-struct SInt128{V} <: Signed
-    function SInt128{V}() where V
-        !(typeof(V) === Int128) && throw(ArgumentError("SInt128 only supports static Int128 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SInt64{V} <: Signed
-    function SInt64{V}() where V
-        !(typeof(V) === Int64) && throw(ArgumentError("SInt64 only supports static Int64 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SInt{V} = SInt64{V}
-
-struct SInt32{V} <: Signed
-    function SInt32{V}() where V
-        !(typeof(V) === Int32) && throw(ArgumentError("SInt32 only supports static Int32 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SInt16{V} <: Signed
-    function SInt16{V}() where V
-        !(typeof(V) === Int16) && throw(ArgumentError("SInt16 only supports static Int16 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SInt8{V} <: Signed
-    function SInt8{V}() where V
-        !(typeof(V) === Int8) && throw(ArgumentError("SInt8 only supports static Int8 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SSigned{V} = Union{SInt8{V},SInt16{V},SInt32{V},SInt64{V},SInt128{V}}
-
-SSigned(x::Int8) = SInt8(x)
-SSigned(x::Int16) = SInt16(x)
-SSigned(x::Int32) = SInt32(x)
-SSigned(x::Int64) = SInt64(x)
-SSigned(x::Int128) = SInt128(x)
-
-function SSigned(val::Val{V}) where V
-    if V isa Int8
-        SInt8{V}()
-    elseif V isa Int16
-        SInt16{V}()
-    elseif V isa Int32
-        SInt32{V}()
-    elseif V isa Int128
-        SInt128{V}()
-    else
-        SInt64{V}()
-    end
-end
-
 struct SBool{V} <: Integer
     function SBool{V}() where V
         !(typeof(V) === Bool) && throw(ArgumentError("SBool only supports static Bool storage, got $(typeof(V))"))
@@ -127,11 +5,11 @@ struct SBool{V} <: Integer
     end
 end
 
-static_unsigned = (SUInt128,SUInt16,SUInt32,SUInt64,SUInt8)
+#static_unsigned = (SUInt128,SUInt16,SUInt32,SUInt64,SUInt8)
 
-static_signed = (SInt128,SInt16,SInt32,SInt64,SInt8)
+#static_signed = (SInt128,SInt16,SInt32,SInt64,SInt8)
 
-static_integer = (static_unsigned..., static_signed...)
+#static_integer = (static_unsigned..., static_signed...)
 
 const SInteger{V} = Union{SSigned{V},SUnsigned{V},SBool{V}}
 function SInteger(val::Val{V}) where V
@@ -171,77 +49,195 @@ SInteger(x::Unsigned) = SUnsigned(x)
 Base.unsigned(x::SBool{true}) = SUInt(1)
 Base.unsigned(x::SBool{false}) = SUInt(0)
 
-Base.unsigned(::SInt8{X}) where X = SUInt8{Base.bitcast(UInt8, X::Int8)}()
-Base.unsigned(::SInt16{X}) where X = SUInt16{Base.bitcast(UInt16, X::Int16)}()
-Base.unsigned(::SInt32{X}) where X = SUInt32{Base.bitcast(UInt32, X::Int32)}()
-Base.unsigned(::SInt64{X}) where X = SUInt64{Base.bitcast(UInt64, X::Int64)}()
-Base.unsigned(::SInt128{X}) where X = SUInt128{Base.bitcast(UInt128, X::Int128)}()
-Base.unsigned(x::SUnsigned) = x
 
 Base.Unsigned(x::SInteger) = Base.unsigned(x)
 
-Base.unsigned(::Type{<:SInt8}) = SUInt8
-Base.unsigned(::Type{<:SInt16}) = SUInt16
-Base.unsigned(::Type{<:SInt32}) = SUInt32
-Base.unsigned(::Type{<:SInt64}) = SUInt64
-Base.unsigned(::Type{<:SInt128}) = SUInt128
-Base.unsigned(::Type{T}) where {T<:SUnsigned} = T
-
-Base.signed(x::SUInt8{X}) where X = SInt8{Int8(X::UInt8)}()
-Base.signed(x::SUInt16{X}) where X = SInt16{Int16(X::UInt16)}()
-Base.signed(x::SUInt32{X}) where X = SInt32{Int32(X::UInt32)}()
-Base.signed(x::SUInt64{X}) where X = SInt64{Int64(X::UInt64)}()
-Base.signed(x::SUInt128{X}) where X = SInt128{Int128(X::UInt128)}()
-
-Base.Signed(x::SUnsigned) = signed(x)
-Base.Signed(x::SSigned) = x
 
 
-Base.widen(::Type{<:SInt8{X}}) where X = SInt16
-Base.widen(::Type{<:SInt16{X}}) where X = SInt32
-Base.widen(::Type{<:SInt32{X}}) where X= SInt64
-Base.widen(::Type{<:SInt64{X}}) where X = SInt128
-Base.widen(::Type{<:SUInt8{X}}) where X = SUInt16
-Base.widen(::Type{<:SUInt16{X}}) where X = SUInt32
-Base.widen(::Type{<:SUInt32{X}}) where X= SUInt64
-Base.widen(::Type{<:SUInt64{X}}) where X = SUInt128
-
-struct SFloat64{V} <: AbstractFloat
-    function SFloat64{V}() where V
-        !(V isa Float64) && throw(ArgumentError("SFloat64 only supports static Float64 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SFloat32{V} <: AbstractFloat
-    function SFloat32{V}() where V
-        !(V isa Float32) && throw(ArgumentError("SFloat32 only supports static Float32 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-struct SFloat16{V} <: AbstractFloat
-    function SFloat16{V}() where V
-        !(V isa Float16) && throw(ArgumentError("SFloat16 only supports static Float16 storage, got $(typeof(V))"))
-        new{V}()
-    end
-end
-
-const SFloat{V} = Union{SFloat16{V},SFloat32{V},SFloat64{V}}
-
-
-function SFloat(val::Val{V}) where V
-    if V isa Float16
-        SFloat16{V}()
-    elseif V isa Float32
-        SFloat32{V}()
-    else
-        SFloat64{V}()
-    end
-end
-
-Base.show(io::IO, ::SFloat{V}) where V = show(io, V)
 Base.show(io::IO, ::SInteger{V}) where V = show(io, V)
+
+"""
+    SRational
+
+# Examples
+```jldoctest
+julia> SInt(3) // SInt(5)
+3//5
+
+julia> (SInt(3) // SInt(5)) // (SInt(2) // SInt(1))
+3//10
+```
+"""
+struct SRational{N<:SInteger,D<:SInteger} <: Real end
+
+
+const SReal{V} = Union{SInteger{V},SFloat{V},SRational{V}}
+
+SReal(x::BaseInteger) = SInteger(x)
+SReal(x::BaseFloat) = SFloat(x)
+SReal(x::Rational) = SRational(x)
+
+Base.promote_eltype(x::SReal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::BaseNumber, y::SReal) = promote_type(eltype(x), eltype(y))
+Base.promote_eltype(x::SReal, y::SReal) = promote_type(eltype(x), eltype(y))
+
+function SReal(::Val{V}) where V
+    if V isa Integer
+        if V isa Unsigned
+            if V isa UInt8
+                SUInt8{V}()
+            elseif V isa UInt16
+                SUInt16{V}()
+            elseif V isa UInt32
+                SUInt32{V}()
+            elseif V isa UInt128
+                SUInt128{V}()
+            else
+                SUInt64{V}()
+            end
+        elseif V isa Bool
+            SBool{V}()
+        elseif V isa Signed
+            if V isa Int8
+                SInt8{V}()
+            elseif V isa Int16
+                SInt16{V}()
+            elseif V isa Int32
+                SInt32{V}()
+            elseif V isa Int128
+                SInt128{V}()
+            else
+                SInt64{V}()
+            end
+        end
+    elseif V isa AbstractFloat
+        if V isa Float16
+            SFloat16{V}()
+        elseif V isa Float32
+            SFloat32{V}()
+        else
+            SFloat64{V}()
+        end
+    elseif V isa Rational
+        SRational(val)
+    end
+end
+
+
+"""
+    SComplex{I,R}
+"""
+struct SComplex{I,R} <: Number
+    SComplex(i::T, r::T) where T<:Real = new{i,r}()
+end
+
+const SNumber{V} = Union{SComplex{V},SReal{V}}
+
+SNumber(x::BaseReal) = SReal(x)
+SNumber(x::Complex) = SComplex(x)
+
+function SNumber(val::Val{V}) where V
+    if V isa Real
+        if V isa Integer
+            if V isa Unsigned
+                if V isa UInt8
+                    SUInt8{V}()
+                elseif V isa UInt16
+                    SUInt16{V}()
+                elseif V isa UInt32
+                    SUInt32{V}()
+                elseif V isa UInt128
+                    SUInt128{V}()
+                else
+                    SUInt64{V}()
+                end
+            elseif V isa Bool
+                SBool{V}()
+            elseif V isa Signed
+                if V isa Int8
+                    SInt8{V}()
+                elseif V isa Int16
+                    SInt16{V}()
+                elseif V isa Int32
+                    SInt32{V}()
+                elseif V isa Int128
+                    SInt128{V}()
+                else
+                    SInt64{V}()
+                end
+            end
+        elseif V isa AbstractFloat
+            if V isa Float16
+                SFloat16{V}()
+            elseif V isa Float32
+                SFloat32{V}()
+            else
+                SFloat64{V}()
+            end
+        elseif V isa Rational
+            SRational(val)
+        end
+    elseif V isa Complex
+        SComplex(val)
+    end
+end
+
+struct SChar{C} <: AbstractChar
+    function SChar{C}() where C
+        !(C isa Char) && throw(ArgumentError("SChar only supports static Char storage, got $(typeof(C))"))
+        return new{C}()
+    end
+end
+SChar(c::Char) = SChar{c}()
+Base.values(::SChar{C}) where C = C::Char
+
+Base.isvalid(::SChar{C}) where C = isvalid(C::Char)
+Base.show(io::IO, x::SChar{C}) where C = print(io, C::Char)
+
+struct SSymbol{S}
+    function SSymbol{S}() where S
+        !(S isa Symbol) && throw(ArgumentError("SSymbol only supports static Symbol storage, got $(typeof(S))"))
+        return new{S}()
+    end
+end
+
+SSymbol(s::Symbol) = SSymbol{s}()
+Base.values(::SSymbol{S}) where S = S::Symbol
+
+Base.show(io::IO, x::SSymbol{S}) where S = print(io, S::Symbol)
+
+const AbstractSymbol = Union{SSymbol{<:Any},Symbol}
+
+"""
+    TPVal{H,L}
+"""
+struct TPVal{H,L}
+    function TPVal{H,L}() where {H,L}
+        if eltype(H) == eltype(L)
+            return new{H,L}()
+        else
+            error("high and low precision values must be of the same type but got,
+                  $(eltype(H)) and $(eltype(L)).")
+        end
+    end
+end
+
+
+const SVal{V} = Union{SNumber{V},SChar{V},TPVal{V}}
+
+SVal(x::BaseNumber) = SNumber(x)
+SVal(x::AbstractChar) = SChar(x)
+SVal(x::TwicePrecision) = TPVal(x)
+
+function SVal(val::Val{V}) where V
+    if V isa Number
+        SNumber(val)
+    elseif V isa AbstractChar
+        SChar(val)
+    elseif V isa TwicePrecision
+        TPVal(val)
+    end
+end
 
 
 # static to base dict
@@ -290,27 +286,11 @@ SI2BI = Dict(SUInt128 => UInt128,
              SInt64 => Int64,
              SInt8 => Int8)
 
-SUI2BUI = Dict(SUInt128 => UInt128,
-               SUInt16 => UInt16,
-               SUInt32 => UInt32,
-               SUInt64 => UInt64,
-               SUInt8 => UInt8)
 BUI2SUI = Dict(UInt128 => SUInt128,
              UInt16 => SUInt16,
              UInt32 => SUInt32,
              UInt64 => SUInt64,
              UInt8 => SUInt8)
-
-SSI2BSI = Dict(SInt128 => Int128,
-               SInt16 => Int16,
-               SInt32 => Int32,
-               SInt64 => Int64,
-               SInt8 => Int8)
-BSI2SSI = Dict(Int128 => SInt128,
-               Int16 => SInt16,
-               Int32 => SInt32,
-               Int64 => SInt64,
-               Int8 => SInt8)
 
 
 BI2SI = Dict(UInt128 => SUInt128,
@@ -325,13 +305,11 @@ BI2SI = Dict(UInt128 => SUInt128,
              Int64 => SInt64,
              Int8 => SInt8)
 
-SF2BF = Dict(SFloat64 => Float64,
-             SFloat32 => Float32,
-             SFloat16 => Float16)
+for (ST,BT) in S2B
+    defbasics(ST, BT)
+    defbool(ST, BT)
+end
 
-BF2SF = Dict(Float64 => SFloat64,
-             Float32 => SFloat32,
-             Float16 => SFloat16)
 
 for (SIT,BIT) in SI2BI
     BFT = float(BIT)
@@ -340,12 +318,21 @@ for (SIT,BIT) in SI2BI
         Base.AbstractFloat(::$SIT{X}) where X = $SFT{$BFT(X::$BIT)}()
     end
 end
+
 Base.AbstractFloat(::SBool{X}) where X = SFloat64{Float64(X::Bool)}()
 
-for (ST,BT) in S2B
-    defbasics(ST, BT)
-    defbool(ST, BT)
+for (SI,BI) in SSI2BSI
+    BUI = unsigned(BI)
+    SUI = BUI2SUI[BUI]
+    @eval begin
+        Base.unsigned(::$SI{X}) where X = $SUI{Base.bitcast($BUI, X::$BI)::$BUI}()
+        Base.unsigned(::Type{<:$SI{X}}) where X = $SUI
+
+        Base.signed(::$SUI{X}) where X = $SI{$BI(X::$BUI)::$BI}()
+        Base.signed(::Type{<:$SUI{X}}) where X = $SI
+    end
 end
+
 
 SUInt128One, SUInt128Zero = defmath(SUInt128, UInt128)
 
@@ -385,8 +372,12 @@ SFloat64One, SFloat64Zero = defmath(SFloat64, Float64)
 SFloat32One, SFloat32Zero = defmath(SFloat32, Float32)
 SFloat16One, SFloat16Zero = defmath(SFloat16, Float16)
 
-for (ST,BT) in SI2BI
-    defint(ST,BT)
+for (S,B) in SI2BI
+    defint(S,B)
+end
+
+for (S,B) in SF2BF
+    deffloat(S,B)
 end
 
 #Base.signed(x::Unsigned) = reinterpret(typeof(convert(Signed, zero(x))), x
@@ -407,17 +398,36 @@ for (ST1,BT1) in S2B
     end
 end
 
+promote_rule(::Type{<:AbstractIrrational}, ::Type{SFloat16}) = SFloat16
+promote_rule(::Type{<:AbstractIrrational}, ::Type{SFloat32}) = SFloat32
+promote_rule(::Type{<:AbstractIrrational}, ::Type{T}) where {T<:SReal} = promote_type(SFloat64, T)
+
 for (ST1,BT1) in S2B
     for (ST2,BT2) in S2B
         if BT1 != BT2
-            eval(:((::Type{$BT2})(::$ST1{X}) where X = $BT2(X::$BT1)))
-            if ST2 != SFloat32 && ST1 != SFloat16
-                eval(:((::Type{<:$ST2{<:Any}})(::$ST1{X}) where X = $ST2{$BT2(X::$BT1)}()))
+            @eval begin
+                @generated function (::Type{<:$ST2{<:Any}})(::$ST1{X}) where X
+                    ret = $ST2{$BT2(X::$BT1)}()
+                    :($ret)
+                end
+                (::Type{$BT2})(::$ST1{X}) where X = $BT2(X::$BT1)
+                ofeltype(::Type{$BT1}, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
+
+                ofeltype(::Type{$BT1}, val::$BT2) = $BT1(val)
+                ofeltype(::$BT1, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
+                ofeltype(::$BT1, val::$BT2) = $BT1(val)
+
+                ofeltype(::Type{$ST1}, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
+                ofeltype(::Type{$ST1}, val::$BT2) = $BT1(val)
+                ofeltype(::$ST1, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
+                ofeltype(::$ST1, val::$BT2) = $BT1(val)
+
+                Base.flipsign(::$ST1{V1}, ::$ST2{V2}) where {V1,V2} = $ST1{flipsign(V1::$BT1,V2::$BT2)}()
+                Base.copysign(::$ST1{V1}, ::$ST2{V2}) where {V1,V2} = $ST1{copysign(V1::$BT1,V2::$BT2)}()
             end
         end
     end
 end
-
 SIntegerZeroType = Union{typeof(SInt8Zero),typeof(SUInt8Zero),typeof(SInt16Zero),
                          typeof(SUInt16Zero),typeof(SInt32Zero),typeof(SUInt32Zero),
                          typeof(SInt64Zero),typeof(SUInt64Zero),typeof(SInt128Zero),
@@ -426,3 +436,6 @@ SIntegerOneType = Union{typeof(SInt8One),typeof(SUInt8One),typeof(SInt16One),typ
                         typeof(SInt32One),typeof(SUInt32One),typeof(SInt64One),typeof(SUInt64One),
                         typeof(SInt128One),typeof(SUInt128One)}
 SIntegerNegOneType = Union{SInt8{-Int8(1)},SInt16{-Int16(1)},SInt32{-Int32(1)},SInt64{-1},SInt128{-Int128(1)}}
+
+SRational(num::SIntegerZeroType, den::SIntegerZeroType) =
+    throw("invalid rational: zero($(eltype(num))//zero($(eltype(den))")

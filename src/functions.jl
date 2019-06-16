@@ -30,87 +30,6 @@ _prevpow2(x::Integer) = convert(typeof(x), x < 0 ? -_prevpow2(unsigned(-x)) :
 
 
 #=
-SVal(val::SVal) = val
-
-for (ST,BT) in zip(static_real, base_real)
-
-    @eval begin
-        Base.fma(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} =
-            $ST{fma(X::$BT, Y::$BT, Z::$BT)}()
-
-        #Base.muladd(::$ST{X}, ::$ST{Y}, ::$ST{Z}) where {X,Y,Z} = SVal(muladd(X::$BT, Y::$BT, Z::$BT))
-
-        Base.div(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{div(X::$BT, Y::$BT)}()
-
-        Base.fld(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{fld(X::$BT, Y::$BT)}()
-
-        Base.cld(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{cld(X::$BT, Y::$BT)}()
-
-        Base.rem(::$ST{X}, ::$ST{Y}) where {X,Y} = $ST{rem(X::$BT, Y::$BT)}()
-
-
-        # TODO: figure out return type inference for these (if possible)
-        (\)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SVal((\)(V1::$BT, V2::$BT))
-        (^)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SVal((^)(V1::$BT, V2::$BT))
-        Base.mod(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(mod(X::$BT, Y::$BT))
-        Base.mod1(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(mod1(X::$BT, Y::$BT))
-        Base.fld1(::$ST{X}, ::$ST{Y}) where {X,Y} = SVal(fld1(X::$BT, Y::$BT))
-
-        seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
-    end
-
-    # f(static) --> Bool
-    # f(static, static) --> static
-    for (ST2,BT2) in zip(static_real, base_real)
-        if BT == BT2
-            @eval begin
-                (::Type{<:$ST{<:Any}})(val::$ST2) = val
-                (::Type{<:$ST{<:Any}})(val::$BT2) = $ST{val}()
-
-                Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = $BT
-                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{flipsign(V1::$BT,V2::$BT2)}()
-                Base.copysign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{copysign(V1::$BT,V2::$BT2)}()
-
-                # converts to the element type but does not change from static/non-static type
-                ofeltype(::Type{$BT}, val::$ST) = val
-                ofeltype(::Type{$BT}, val::$BT) = val
-                ofeltype(::$BT, val::$ST) = val
-                ofeltype(::$BT, val::$BT) = val
-
-                ofeltype(::Type{<:$ST}, val::$ST) = val
-                ofeltype(::Type{<:$ST}, val::$BT) = val
-                ofeltype(::$ST, val::$ST) = val
-                ofeltype(::$ST, val::$BT) = val
-
-                (::Type{$BT2})(::$ST{V}) where V = V::$BT
-            end
-        else
-            @eval begin
-                ofeltype(::Type{$BT}, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
-                ofeltype(::Type{$BT}, val::$BT2) = $BT(val)
-                ofeltype(::$BT, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
-                ofeltype(::$BT, val::$BT2) = $BT(val)
-
-                ofeltype(::Type{$ST}, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
-                ofeltype(::Type{$ST}, val::$BT2) = $BT(val)
-                ofeltype(::$ST, val::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
-                ofeltype(::$ST, val::$BT2) = $BT(val)
-
-                (::Type{<:$ST{<:Any}})(::$ST2{V}) where V = $ST{$BT(V::$BT2)}()
-                (::Type{<:$ST{<:Any}})(val::$BT2) = $ST{$BT(val)}()
-
-                Base.promote_rule(::Type{<:$ST}, ::Type{$BT2}) = promote_type($BT, $BT2)
-                Base.flipsign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{flipsign(V1::$BT,V2::$BT2)}()
-                Base.copysign(::$ST{V1}, ::$ST2{V2}) where {V1,V2} = $ST{copysign(V1::$BT,V2::$BT2)}()
-
-
-                (::Type{$BT2})(::$ST{V}) where V = $BT2(V::$BT)
-
-                # Given Val of different type convert to SVal
-            end
-        end
-    end
-
     # only iterate over <:Integer
     for (ST2,BT2) in zip(static_integer, base_integer)
         @eval begin
@@ -152,11 +71,6 @@ ERROR: return type Tuple{SInt64{3},SInt64{-1},SInt64{-1}} does not match inferre
 
 for (ST,BT) in zip(static_integer, base_integer)
     @eval begin
-        (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = SFloat64{(/)(V1::$BT, V2::$BT)}()
-        Base.log2(::$ST{V}) where V = SFloat64{log(V::$BT)/log(2)}()
-        Base.log10(::$ST{V}) where V = SFloat64{log(V::$BT)/log(10)}()
-        Base.lcm(a::$ST{A}, b::$ST{B}) where {A,B} = $ST{lcm(A::$BT,B::$BT)}()
-
         function Base.invmod(n::$ST, m::$ST)
             g, x, y = gcdx(n, m)
             g != 1 && throw(DomainError((n, m), "Greatest common divisor is $g."))
@@ -171,18 +85,6 @@ for (ST,BT) in zip(static_integer, base_integer)
 end
 
 >>(x::SInteger, y::SInteger) = SInteger(>>(values(x), values(y)))
-
-
-Base.promote_eltype(x::SVal, y::BaseNumber) = promote_type(eltype(x), eltype(y))
-Base.promote_eltype(x::BaseNumber, y::SVal) = promote_type(eltype(x), eltype(y))
-Base.promote_eltype(x::SVal, y::SVal) = promote_type(eltype(x), eltype(y))
-
-Base.promote_eltype(x::Type{<:SVal}, y::Type{<:SVal}) = promote_type(eltype(x), eltype(y))
-
-promote_toeltype(x, y) = promote_toeltype(promote_eltype(x, y), x, y)
-promote_toeltype(::Type{T}, x, y) where T = ofeltype(T, x), ofeltype(T, y)
-
-Base.trunc(::Type{T}, x::SVal) where T = SVal(trunc(T, values(x)))
 
 nbits16 = SInt(cld(precision(Float16), 2))
 nbits32 = SInt(cld(precision(Float32), 2))
