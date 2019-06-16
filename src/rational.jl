@@ -1,3 +1,20 @@
+"""
+    SRational
+
+# Examples
+```jldoctest
+julia> SInt(3) // SInt(5)
+3//5
+
+julia> (SInt(3) // SInt(5)) // (SInt(2) // SInt(1))
+3//10
+```
+"""
+struct SRational{N<:SInteger,D<:SInteger} <: Real end
+
+SRational(num::SIntegerZeroType, den::SIntegerZeroType) =
+    throw("invalid rational: zero($(eltype(num))//zero($(eltype(den))")
+
 for (S,B) in SI2BI
     @eval begin
         function SRational(num::$S, den::$S)

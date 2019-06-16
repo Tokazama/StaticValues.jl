@@ -84,3 +84,27 @@ BSI2SSI = Dict(Int128 => SInt128,
                Int32 => SInt32,
                Int64 => SInt64,
                Int8 => SInt8)
+
+for (ST,BT) in SSI2BSI
+    defbasics(ST, BT)
+    defbool(ST, BT)
+end
+
+SInt128One, SInt128Zero = defmath(SInt128, Int128)
+SInt128NegOne = - SInt128One
+
+SInt64One, SInt64Zero = defmath(SInt64, Int64)
+const SZero = SInt64Zero
+const SOne = SInt64One
+
+
+SInt64NegOne = - SInt64One
+
+SInt32One, SInt32Zero = defmath(SInt32, Int32)
+SInt32NegOne = - SInt32One
+
+SInt16One, SInt16Zero = defmath(SInt16, Int16)
+SInt16NegOne = - SInt16One
+
+SInt8One, SInt8Zero = defmath(SInt8, Int8)
+SInt8NegOne = - SInt8One

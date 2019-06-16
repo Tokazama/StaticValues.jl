@@ -80,3 +80,28 @@ SUI2BUI = Dict(SUInt128 => UInt128,
                SUInt64 => UInt64,
                SUInt8 => UInt8)
 
+BUI2SUI = Dict(UInt128 => SUInt128,
+               UInt16 => SUInt16,
+               UInt32 => SUInt32,
+               UInt64 => SUInt64,
+               UInt8 => SUInt8)
+
+for (ST,BT) in SUI2BUI
+    defbasics(ST, BT)
+    defbool(ST, BT)
+end
+
+SUInt128One, SUInt128Zero = defmath(SUInt128, UInt128)
+
+SUInt64One, SUInt64Zero = defmath(SUInt64, UInt64)
+SUInt64ZeroType = typeof(SUInt64Zero)
+SUInt64OneType = typeof(SUInt64One)
+
+SUInt32One, SUInt32Zero = defmath(SUInt32, UInt32)
+SUInt32ZeroType = typeof(SUInt32Zero)
+SUInt32OneType = typeof(SUInt32One)
+
+SUInt16One, SUInt16Zero = defmath(SUInt16, UInt16)
+SUInt8One, SUInt8Zero = defmath(SUInt8, UInt8)
+
+

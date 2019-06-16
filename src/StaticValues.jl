@@ -3,7 +3,7 @@ module StaticValues
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
 import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
 import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
-             abs, abs2, isless, max, min, div, rem, promote_rule, @pure
+             abs, abs2, isless, max, min, div, rem, promote_rule, @pure, getindex
 
 export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SUInt128, SUInt64, SUInt, SUInt32, SUInt16, SUInt8,
@@ -15,73 +15,88 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SSigned, SUnsigned, SInteger, SFloat, SReal,
        SVal, TPVal,
        SOne, SZero,
-       SChar, SSymbol
+       SChar, SSymbol,
+       UnitSRange,
+       UnitMRange,
+#       OneToSRange,
+       StepSRangeLen,
+       StepSRange,
+       StepMRange,
+       LinSRange,
+       LinMRange,
+       OffsetSRange,
+       OffsetMRange,
+       StaticIndices, LinearSIndices,
+       srange
 
+struct Dynamic end
 
-base_unsigned = (UInt128,UInt16,UInt32,UInt64,UInt8)
-const BaseUnsigned = Union{base_unsigned...}
-
-base_signed = (Int128,Int16,Int32,Int64,Int8)
-const BaseSigned = Union{base_signed...}
-
-base_integer = (base_unsigned..., base_signed...)
-
-const BaseInteger = Union{base_integer..., Bool}
-
-base_float = (Float64,Float32,Float16)
-
-const BaseFloat = Union{base_float...}
-
-base_real = (base_integer..., base_float..., Rational, Irrational)
-const BaseReal = Union{base_real..., Bool}
-
-base_number = (base_real..., Complex)
-const BaseNumber = Union{base_number...}
-
-function defbasics(::Type{ST}, ::Type{BT}) where {ST,BT}
-    @eval begin
-        Base.@pure Base.values(::$ST{V}) where V = V::$BT
-        Base.@pure Base.values(::Type{$ST{V}}) where V = V::$BT
-
-        (::Type{<:$ST})(val::Val{V}) where V = $ST{$BT(V)}()
-
-        Base.eltype(::$ST) = $BT
-        Base.eltype(::Type{<:$ST}) = $BT
-
-        Base.typemax(::$ST) = $ST{Base.typemax($BT)}()
-        Base.typemax(::Type{$ST}) = $ST{Base.typemax($BT)}()
-
-        Base.typemin(::$ST) = $ST{typemin($BT)}()
-        Base.typemin(::Type{$ST}) = $ST{typemin($BT)}()
-
-        promote_rule(::Type{<:$ST}, ::Type{$BT}) = $BT
-
-        (::Type{$BT})(::$ST{X}) where X = X::$BT
-        (::Type{<:$ST{<:Any}})(x::$ST) = x
-        (::Type{<:$ST{<:Any}})(x::$BT) = $ST{x}()
-        (::Type{<:$ST{<:Any}})(x::BaseNumber) = $ST($BT(x))
-
-        ofeltype(::Type{$BT}, val::$ST) = val
-
-        seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
-    end
-end
-
-include("signed.jl")
-include("unsigned.jl")
-include("float.jl")
+const BaseUnsigned = Union{UInt128,UInt16,UInt32,UInt64,UInt8}
+const BaseSigned = Union{Int128,Int16,Int32,Int64,Int8}
+const BaseInteger = Union{Int128,Int16,Int32,Int64,Int8,
+                          UInt128,UInt16,UInt32,UInt64,UInt8,Bool}
+const BaseFloat = Union{Float64,Float32,Float16}
+const BaseReal = Union{Int128,Int16,Int32,Int64,Int8,
+                       UInt128,UInt16,UInt32,UInt64,UInt8,
+                       Bool,Float64,Float32,Float16,Rational,Irrational}
+const BaseNumber = Union{Int128,Int16,Int32,Int64,Int8,
+                         UInt128,UInt16,UInt32,UInt64,UInt8,
+                         Bool,Float64,Float32,Float16,
+                         Rational,Irrational,
+                         Complex}
 
 include("deffunctions.jl")
+include("signed.jl")
+include("unsigned.jl")
+include("int.jl")
+include("float.jl")
+include("rational.jl")
+include("real.jl")
+include("complex.jl")
+include("char.jl")
+
 include("types.jl")
 include("intfuncs.jl")
 include("floatfuncs.jl")
-include("rational.jl")
 
 include("twiceprecision.jl")
 
-include("complex.jl")
-
 include("functions.jl")
+
+# TODO: replace these methods
+int(x::SReal) = SInt64(x)
+int(x::Real) = Int64(x)
+
+int128(x::SReal) = SInt128(x)
+int128(x::Real) = Int128(x)
+
+
+
+#const IEEESFloat = Union{Float16,Float32,Float64,SFloat16,SFloat32,SFloat64}
+
+const F_or_FF = Union{<:AbstractFloat, Tuple{<:AbstractFloat,<:AbstractFloat}}
+
+f64(x::BaseFloat) = Float64(x)
+f64(x::Tuple{<:BaseFloat,<:BaseFloat}) = Float64(x[1]) + Float64(x[2])
+f64(x::SFloat) = SFloat64(x)
+f64(x::Tuple{<:SFloat,<:SFloat}) = SFloat64(x[1]) + SFloat64(x[2])
+
+tp64(x::BaseNumber) = TwicePrecision{Float64}(x)
+tp64(x::Tuple{<:BaseNumber,<:BaseNumber}) = TwicePrecision{Float64}(x[1], x[2])
+tp64(x::SReal) = TPVal(ofeltype(Float64, x))
+tp64(x::Tuple{H,L}) where {H<:SReal,L<:SReal} = TPVal(Float64, x[1]::H, x[2]::L)
+
+include("staticrange.jl")
+include("staticstartrange.jl")
+include("staticunitrange.jl")
+include("staticordinalrange.jl")
+include("staticsteprange.jl")
+include("staticlinrange.jl")
+include("staticsteprangelen.jl")
+include("srange.jl")
+include("colon.jl")
+include("rangefuncs.jl")
 #include("math.jl")
+#
 
 end

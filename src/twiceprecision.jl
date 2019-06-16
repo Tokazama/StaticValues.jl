@@ -14,15 +14,6 @@ truncbits(x::F, nb) where {F<:Union{SFloat16, SFloat32, SFloat64}} =
     truncmask(x, Base.typemax(Base.uinttype(F)) << nb)
 
 
-for (ST,BT) in S2B
-    @eval begin
-        function Base.add12(x::$ST, y::$ST)
-            x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
-            canonicalize2(x, y)
-        end
-    end
-end
-
 const AbstractTPI64 = Union{TPVal{<:SInt64,<:SInt64},TwicePrecision{Int64}}
 const AbstractTPF64 = Union{TPVal{<:SFloat64,<:SFloat64},TwicePrecision{Float64}}
 const AbstractTPF32 = Union{TPVal{<:SFloat32,<:SFloat32},TwicePrecision{Float32}}
