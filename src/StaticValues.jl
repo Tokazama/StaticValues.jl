@@ -12,7 +12,7 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        AbstractInt64, AbstractInt32, AbstractInt16, AbstractInt8,
        AbstractUInt64, AbstractUInt32, AbstractUInt16, AbstractUInt8,
        AbstractFloat64, AbstractFloat32, AbstractFloat16,
-       SSigned, SUnsigned, SInteger, SFloat, SReal,
+       SSigned, SUnsigned, SInteger, SFloat, SReal, SNumber,
        SVal, TPVal,
        SOne, SZero,
        SChar, SSymbol,
@@ -68,7 +68,7 @@ int(x::SReal) = SInt64(x)
 int(x::Real) = Int64(x)
 
 int128(x::SReal) = SInt128(x)
-int128(x::Real) = Int128(x)
+int128(x::BaseReal) = Int128(x)
 
 
 

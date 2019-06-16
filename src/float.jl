@@ -54,7 +54,9 @@ function deffloat(::Type{ST}, ::Type{BT}) where {ST,BT<:BaseFloat}
             return $ST{x}(), $ST{y}()
         end
 
-        maxintfloat(::Type{<:$ST{X}}) where X = $ST{maxintfloat($BT)}()
+        maxintfloat(::Type{<:$ST}) = $ST{maxintfloat($BT)}()
+        maxintfloat(::$ST{X}) where X = $ST{maxintfloat(X::$BT)}()
+
 
         (/)(::$ST{V1}, ::$ST{V2}) where {V1,V2} = $ST{(/)(V1::$BT, V2::$BT)}()
 
@@ -111,6 +113,10 @@ end
 
 const SFloat{V} = Union{SFloat16{V},SFloat32{V},SFloat64{V}}
 
+SFloat(x::Float16) = SFloat16{x}()
+SFloat(x::Float32) = SFloat32{x}()
+SFloat(x::Float64) = SFloat64{x}()
+
 function SFloat(val::Val{V}) where V
     if V isa Float16
         SFloat16{V}()
@@ -145,5 +151,6 @@ end
 SFloat64One, SFloat64Zero = defmath(SFloat64, Float64)
 SFloat32One, SFloat32Zero = defmath(SFloat32, Float32)
 SFloat16One, SFloat16Zero = defmath(SFloat16, Float16)
+
 
 

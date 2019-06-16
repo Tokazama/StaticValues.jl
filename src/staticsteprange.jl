@@ -93,6 +93,3 @@ StaticStepRange{T,B,S,E}(start::B, step::S, stop::E, len::L) where {T,B<:SVal,S<
 
 StaticStepRange{T,B,S,E}(start::B, step::S, stop::E, len::L) where {T,B,S,E,L} =
     StepMRange{T,B,S,E}(start, step, stop)
-
-showrange(io::IO, r::StaticStepRange) = print(io, "$(first(r)):$(step(r)):$(last(r)) \t (static)")
-

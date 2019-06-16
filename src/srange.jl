@@ -94,7 +94,7 @@ function _sr(start::B, ::Nothing, stop::S, len::Integer) where {B<:Integer,S<:In
 end
 
 function __sr(start::AbstractFloat, ::Nothing, stop::AbstractFloat, len::Integer)
-    len < 2 && return _linspace1(T, start, stop, len)
+    len < 2 && return linspace1(T, start, stop, len)
     if start == stop
         return srangehp(eltype(start), start, zero(start), SZero, len, SOne)
     end

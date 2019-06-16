@@ -75,18 +75,12 @@ function check_params(::Type{StaticStepRangeLen}, start::B, step::S, len::L, off
     return nothing
 end
 
+SITuple = Tuple{<:Integer,<:Integer}
 
-function srangehp(::Type{Float64},
-                  b::Tuple{<:Integer,<:Integer},
-                  s::Tuple{<:Integer,<:Integer},
-                  nb::Integer,
-                  l::Integer,
-                  f::Integer)
+srangehp(::Type{Float64}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::Integer) =
     StaticStepRangeLen(tpval(Float64, b), tpval(Float64, s, nb), l, f)
-end
 
-srangehp(::Type{T}, b::Tuple{<:Integer,<:Integer}, s::Tuple{<:Integer,<:Integer},
-         nb::Integer, l::Integer, f::Integer) where T =
+srangehp(::Type{T}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::Integer) where T =
     StaticStepRangeLen{T}(b[1]/b[2], s[1]/s[2], int(l), f)
 
 srangehp(::Type{Float64}, b::F_or_FF, s::F_or_FF, nb::Integer, l::Integer, f::Integer) =
@@ -97,3 +91,4 @@ srangehp(::Type{T}, b::F_or_FF, s::F_or_FF,
     StaticStepRangeLen{T}(f64(b), f64(s), Int(l), f)
 
 showrange(io::IO, r::StaticStepRangeLen) = print(io, "$(values(first(r))):$(values(step(r))):$(values(last(r))) \t (static)")
+

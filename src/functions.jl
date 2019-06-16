@@ -27,6 +27,25 @@ end
 _prevpow2(x::Unsigned) = one(x) << unsigned((SInt(sizeof(eltype(x))) << SInt(3))-leading_zeros(x)-SOne)
 _prevpow2(x::Integer) = convert(typeof(x), x < 0 ? -_prevpow2(unsigned(-x)) :
                                                         _prevpow2(unsigned(x)))
+nbits16 = SInt(cld(precision(Float16), 2))
+nbits32 = SInt(cld(precision(Float32), 2))
+nbits64 = SInt(cld(precision(Float64), 2))
+
+# lack of specificity in base requires that these be more verbosely written out
+Base.nbitslen(::Type{Float16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
+Base.nbitslen(::Type{<:SFloat16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
 
 
 #=

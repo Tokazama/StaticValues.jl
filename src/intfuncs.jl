@@ -27,6 +27,7 @@ for (ST,BT) in SI2BI
         Base.:(>>>)(x::$ST{X}, y::SUnsigned{Y}) where {X,Y} = $ST{>>>(X::$BT, Y)}()
         Base.:(^)(::$ST{X}, y::SUnsigned{Y}) where {X,Y} = $ST{^(X::$BT, Y::$BT)}()
         Base.lcm(a::$ST{A}, b::$ST{B}) where {A,B} = $ST{lcm(A::$BT,B::$BT)}()
+        (/)(x::$ST, y::$ST) where {T<:Integer} = float(x) / float(y)
         function Base.invmod(n::$ST, m::$ST)
             g, x, y = gcdx(n, m)
             g != 1 && throw(DomainError((n, m), "Greatest common divisor is $g."))
