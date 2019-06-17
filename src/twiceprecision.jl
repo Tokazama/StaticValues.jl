@@ -264,22 +264,34 @@ function /(x::TPVal{Hx,Lx}, y::TPVal{Hy,Ly}) where {Hx,Lx,Hy,Ly}
     ifelse(iszero(hi) | !isfinite(hi), TPVal(hi, hi), ret)
 end
 
+const nbits16 = SInt(cld(precision(Float16), 2))
+const nbits32 = SInt(cld(precision(Float32), 2))
+const nbits64 = SInt(cld(precision(Float64), 2))
+
+# lack of specificity in base requires that these be more verbosely written out
+Base.nbitslen(::Type{Float16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{Float64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
+Base.nbitslen(::Type{<:SFloat16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits16, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat32}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits32, Base.nbitslen(l, f))
+Base.nbitslen(::Type{<:SFloat64}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
+    min(nbits64, Base.nbitslen(l, f))
+
+Base.nbitslen(len::SReal, offset::SReal) = len < 2 ? SZero : ceil(Int, log2(max(offset-SOne, len-offset))) + SOne
+
+
 #nbitslen(r::StaticRange{T,B,E,S,F,L}) where {T,B,E,S,F,L} = nbitslen(T, L, F)
 #@inline ($f)(x::Float64) = nan_dom_err(ccall(($(string(f)), libm), Float64, (Float64,), x), x) 
 
 #
 
-nbithelper(::Type{T}) where T = cld(SReal(precision(T)), SReal(2))
-
-# The +1 here is for safety, because the precision of the significand
-# is 1 bit higher than the number that are explicitly stored.
-function Base.nbitslen(l::SReal, f::SReal)
-    if l < 2
-        return SZero
-    else
-        return ceil(Int, log2(max(f-SOne, l-f))) + SOne
-    end
-end
+#nbithelper(::Type{T}) where T = cld(SReal(precision(T)), SReal(2))
 
 function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
     f = trunc(Int, y)

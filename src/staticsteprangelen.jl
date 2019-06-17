@@ -81,14 +81,14 @@ srangehp(::Type{Float64}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::In
     StaticStepRangeLen(tpval(Float64, b), tpval(Float64, s, nb), l, f)
 
 srangehp(::Type{T}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::Integer) where T =
-    StaticStepRangeLen{T}(b[1]/b[2], s[1]/s[2], int(l), f)
+    StaticStepRangeLen{T}(b[1]/b[2], s[1]/s[2], ofeltype(Int64, l), f)
 
 srangehp(::Type{Float64}, b::F_or_FF, s::F_or_FF, nb::Integer, l::Integer, f::Integer) =
-    StaticStepRangeLen(tp64(b), Base.twiceprecision(tp64(s), nb), int(l), f)
+    StaticStepRangeLen(tp64(b), Base.twiceprecision(tp64(s), nb), ofeltype(Int64, l), f)
 
 srangehp(::Type{T}, b::F_or_FF, s::F_or_FF,
          nb::Integer, l::Integer, f::Integer) where {T<:Union{Float16,Float32}} =
-    StaticStepRangeLen{T}(f64(b), f64(s), Int(l), f)
+    StaticStepRangeLen{T}(f64(b), f64(s), ofeltype(Int64, l), f)
 
 showrange(io::IO, r::StaticStepRangeLen) = print(io, "$(values(first(r))):$(values(step(r))):$(values(last(r))) \t (static)")
 

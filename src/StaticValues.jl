@@ -3,7 +3,8 @@ module StaticValues
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
 import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
 import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
-             abs, abs2, isless, max, min, div, rem, promote_rule, @pure, getindex
+             abs, abs2, isless, max, min, div, rem, promote_rule, @pure
+import Base: getindex, length, first, step, last, firstindex, lastindex, size, eltype
 
 export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SUInt128, SUInt64, SUInt, SUInt32, SUInt16, SUInt8,
@@ -19,6 +20,7 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        UnitSRange,
        UnitMRange,
 #       OneToSRange,
+       StaticStepRangeLen,
        StepSRangeLen,
        StepSRange,
        StepMRange,
@@ -27,6 +29,7 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        OffsetSRange,
        OffsetMRange,
        StaticIndices, LinearSIndices,
+       NamedRange,
        srange
 
 struct Dynamic end
@@ -63,15 +66,6 @@ include("twiceprecision.jl")
 
 include("functions.jl")
 
-# TODO: replace these methods
-int(x::SReal) = SInt64(x)
-int(x::Real) = Int64(x)
-
-int128(x::SReal) = SInt128(x)
-int128(x::BaseReal) = Int128(x)
-
-
-
 #const IEEESFloat = Union{Float16,Float32,Float64,SFloat16,SFloat32,SFloat64}
 
 const F_or_FF = Union{<:AbstractFloat, Tuple{<:AbstractFloat,<:AbstractFloat}}
@@ -96,6 +90,10 @@ include("staticsteprangelen.jl")
 include("srange.jl")
 include("colon.jl")
 include("rangefuncs.jl")
+include("offsetrange.jl")
+include("staticrangewrapper.jl")
+include("namedrange.jl")
+
 #include("math.jl")
 #
 

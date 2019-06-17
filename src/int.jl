@@ -46,8 +46,6 @@ Base.unsigned(x::SBool{false}) = SUInt(0)
 
 Base.Unsigned(x::SInteger) = Base.unsigned(x)
 
-
-
 Base.show(io::IO, ::SInteger{V}) where V = show(io, V)
 
 SI2BI = Dict(SUInt128 => UInt128,

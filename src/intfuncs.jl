@@ -18,6 +18,10 @@ Base.:(<=)(x::SSigned,   y::SUnsigned) = (x <  0) | (unsigned(x) <= y)
 Base.:(<=)(x::SUnsigned, y::SSigned ) = (y >= 0) & (x <= unsigned(y))
 # unsigned shift counts always shift in the same direction
 
+Base.rem2pi(::SInt32{X}, r::RoundingMode) where X = SFloat64{rem2pi(X::Int32, r)}()
+Base.rem2pi(::SInt64{X}, r::RoundingMode) where X = SFloat64{rem2pi(X::Int64, r)}()
+
+
 Base.invmod(::SInteger, ::SIntegerZeroType) = throw(DomainError(m, "`m` must not be 0."))
 
 for (ST,BT) in SI2BI

@@ -22,6 +22,8 @@ function deffloat(::Type{ST}, ::Type{BT}) where {ST,BT<:BaseFloat}
     end
 
     @eval begin
+        Base.rem2pi(::$ST{X}, r::RoundingMode) where X = $ST{rem2pi(X::$BT, r)}()
+
         @generated function Base.sqrt(::$ST{X}) where X
             x = $ST{sqrt(X::$BT)::$BT}()
             :($x)

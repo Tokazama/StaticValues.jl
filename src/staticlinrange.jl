@@ -113,7 +113,7 @@ for (S,B) in ((AbstractFloat16, Float16),(AbstractFloat32, Float32),(AbstractFlo
             # Find the index that returns the smallest-magnitude element
             Δ, Δfac = l - b, one(l)
             if !isfinite(Δ)   # handle overflow for large endpoints
-                Δ, Δfac = e/l - b/l, int(l)
+                Δ, Δfac = e/l - b/l, ofeltype(Int64, l)
             end
             tmin = -(b/Δ)/Δfac            # t such that (1-t)*start + t*stop == 0
             imin = round(Int, tmin*(l-one(l))+one(l))  # index approximately corresponding to t
@@ -128,7 +128,7 @@ for (S,B) in ((AbstractFloat16, Float16),(AbstractFloat32, Float32),(AbstractFlo
                 ref = b
                 step = (Δ/(l-one(l)))*Δfac
             else
-                imin = int(l)
+                imin = ofeltype(Int64, l)
                 ref = e
                 step = (Δ/(l-one(l)))*Δfac
             end
@@ -165,7 +165,7 @@ function linspace(::Type{T}, b::Integer, e::Integer, l::Integer, d::Integer
     ref_num = ofeltype(Int128, l-imin) * b + ofeltype(Int128, imin-one(imin)) * e
     ref_denom = ofeltype(Int128, l-one(l)) * d
     srangehp(T, (ref_num, ref_denom), (ofeltype(Int128, e) - ofeltype(Int128, b), ref_denom),
-             Base.nbitslen(T, l, imin), int(l), imin)
+             Base.nbitslen(T, l, imin), ofeltype(Int64, l), imin)
 end
 
 # For len < 2

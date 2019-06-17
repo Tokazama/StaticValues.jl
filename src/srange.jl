@@ -139,11 +139,11 @@ function sfloatrange(::Type{T}, b::Integer, s::Integer, l::Real, d::Integer) whe
         return srangehp(T, (b, d), (s, d), SZero, SOne, l)
     end
     # index of smallest-magnitude value
-    imin = clamp(round(Int, -b/s+SOne), SOne, int(l))
+    imin = clamp(round(Int, -b/s+SOne), SOne, ofeltype(Int, l))
     # Compute smallest-magnitude element to 2x precision
     ref_n = b+(imin-SOne)*s  # this shouldn't overflow, so don't check
     nb = Base.nbitslen(T, l, imin)
-    srangehp(T, (ref_n, d), (s, d), nb, int(l), imin)
+    srangehp(T, (ref_n, d), (s, d), nb, ofeltype(Int, l), imin)
 end
 
 function sfloatrange(b::AbstractFloat, s::AbstractFloat, l::Integer, d::AbstractFloat)
@@ -153,10 +153,10 @@ function sfloatrange(b::AbstractFloat, s::AbstractFloat, l::Integer, d::Abstract
         ia, ist, idivisor = round(Int, b), round(Int, s), round(Int, d)
         if ia == b && ist == s && idivisor == d
             # We can return the high-precision range
-            return sfloatrange(T, ia, ist, int(l), idivisor)
+            return sfloatrange(T, ia, ist, ofeltype(Int, l), idivisor)
         end
     end
     # Fallback (misses the opportunity to set offset different from 1,
     # but otherwise this is still high-precision)
-    srangehp(T, (b, d), (s, d), Base.nbitslen(T, l, SOne), int(l), SOne)
+    srangehp(T, (b, d), (s, d), Base.nbitslen(T, l, SOne), ofeltype(Int, l), SOne)
 end

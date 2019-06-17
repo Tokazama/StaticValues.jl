@@ -1,4 +1,3 @@
-
 @testset "Static Real" begin
     # `getvalues` is used to ensure that $f(sval, sval) --> sval
 
@@ -137,20 +136,9 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         e = SVal(10)
         l = SVal(5)
 
-        # src/linspace.jl line 1
         @inferred(linspace(T, b, e, l))
 
-        # src/linspace.jl line 15
         @inferred(linspace(Float64, b, e, l))
-
-        #=
-        # src/linspace.jl line 24
-        b = SVal(1.0)
-        e = SVal(10.0)
-        f = SVal(1)
-        l = SVal(5)
-        @inferred(linspace(b, e, f, l))
-        =#
 
         b = SVal(1)
         e = SVal(10)
@@ -160,8 +148,6 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         # src/linspace.jl line 73
         @inferred(linspace(Float64, b, e, l, d))
 
-        # FIXME: inference
-        # src/linspace.jl line 92
         b = SVal(1.0)
         e = SVal(10.0)
         l = SVal(5)
@@ -178,7 +164,6 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
 #        @test @inferred(linrange(T,b,e,l)) == StaticRanges.SRange{Float16,SVal{1.0,Float64},SVal{0.0,Float64},Float16(1.0),1,1}()
     end
 
-    # TODO
     @testset "srangehp" begin
         b = (SInt128(1), SInt128(1))
         s = (SInt128(1), SInt128(1))
@@ -188,35 +173,25 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         T = Float64
 
         # src/srangehp.jl line 1
-        @inferred(srangehp(T, b, s, nb, l, f))
-        # == {Float64,HPSVal{Float64,1.0,0.0},HPSVal{Float64,1.0,0.0},2.0,2,1}()
-
+        @test @inferred(srangehp(T, b, s, nb, l, f)) == StepSRangeLen{Float64,TPVal{SFloat64{1.0},SFloat64{0.0}},TPVal{SFloat64{1.0},SFloat64{0.0}},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
         # src/srangehp.jl line 7
-        @inferred(srangehp(Float32, b, s, nb, l, f))
-        # == StaticRanges.SRange{Float32,SVal{1.0,Float64},SVal{1.0,Float64},2.0f0,2,1}()
+        @test @inferred(srangehp(Float32, b, s, nb, l, f)) == StepSRangeLen{Float32,SFloat64{1.0},SFloat64{1.0},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
         # src/srangehp.jl line 21
         b = SVal(1.0)
         s = SVal(1.0)
-        @inferred(srangehp(T, b, s, nb, l, f))
-        # == StaticRanges.SRange{Float64,HPSVal{Float64,1.0,0.0},HPSVal{Float64,1.0,0.0},2.0,2,1}()
+        @test @inferred(srangehp(T, b, s, nb, l, f)) == StepSRangeLen{Float64,TPVal{SFloat64{1.0},SFloat64{0.0}},TPVal{SFloat64{1.0},SFloat64{0.0}},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
-        # src/srangehp.jl line 35
         b = (SVal(1.0), SVal(0.0))
         s = (SVal(1.0), SVal(0.0))
-        @inferred(srangehp(T, b, s, nb, l, f))
-        # == StaticRanges.SRange{Float64,HPSVal{Float64,1.0,0.0},HPSVal{Float64,1.0,0.0},2.0,2,1}()
+        @test @inferred(srangehp(T, b, s, nb, l, f)) == StepSRangeLen{Float64,TPVal{SFloat64{1.0},SFloat64{0.0}},TPVal{SFloat64{1.0},SFloat64{0.0}},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
-        # src/srangehp.jl line 49
-        @inferred(srangehp(Float32, b, s, nb, l, f))
-        # == StaticRanges.SRange{Float32,SVal{1.0,Float64},SVal{1.0,Float64},2.0f0,2,1}()
+        @test @inferred(srangehp(Float32, b, s, nb, l, f)) == StepSRangeLen{Float32,SFloat64{1.0},SFloat64{1.0},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
-        # src/srangehp.jl line 59
         b = SVal(1.0)
         s = SVal(1.0)
-        @inferred(srangehp(Float32, b, s, nb, l, f))
-        # == StaticRanges.StaticRanges.SRange{Float32,SVal{1.0,Float64},SVal{1.0,Float64},2.0f0,2,1}()
+        @test @inferred(srangehp(Float32, b, s, nb, l, f)) == StepSRangeLen{Float32,SFloat64{1.0},SFloat64{1.0},SFloat64{2.0},SInt64{2},SInt64{1}}()
     end
 
     #=
@@ -234,6 +209,7 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
     end
     =#
 
+    # FIXME
     @testset "StepSRangeLen" begin
         b = SVal(1.0)
         s = SVal(2.0)
@@ -249,7 +225,7 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         b = TPVal{1.0,0.0}()
         s = TPVal{2.0,0.0}()
 
-        @inferred(StepSRangeLen(b, s, l, f))
+        @inferred(StaticStepRangeLen(b, s, l, f))
 
         # src/steprangelen.jl line 28
         @inferred(StepSRangeLen{Float64}(b, s, l, f))
