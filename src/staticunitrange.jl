@@ -80,7 +80,7 @@ function UnitSRange{T}(start::B, stop::E) where {B<:SReal,E<:SReal,T}
 end
 
 UnitSRange{T,B}(start::B, stop::E) where {T<:Union{Int,Int64,Int128},B,E} =
-    UnitSRange{T,B,E}(start, stop, int((stop - start) + one(B)))
+    UnitSRange{T,B,E}(start, stop, ofeltype(Int, (stop - start) + one(B)))
 
 UnitSRange{T,B}(start::B, stop::E) where {T<:Union{UInt,UInt64,UInt128},B,E} =
     UnitSRange{T,B,E}(start, stop, stop < stop ? zero(B) : (stop - start) + one(start))

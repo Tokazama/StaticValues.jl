@@ -1,7 +1,6 @@
 module StaticValues
 
 import Base: splitprec, truncbits, truncmask, twiceprecision, TwicePrecision, canonicalize2
-import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &
 import Base: eltype, promote_eltype, values, log10, isfinite, zero, iszero,
              abs, abs2, isless, max, min, div, rem, promote_rule, @pure
 import Base: getindex, length, first, step, last, firstindex, lastindex, size, eltype
@@ -79,6 +78,7 @@ tp64(x::BaseNumber) = TwicePrecision{Float64}(x)
 tp64(x::Tuple{<:BaseNumber,<:BaseNumber}) = TwicePrecision{Float64}(x[1], x[2])
 tp64(x::SReal) = TPVal(ofeltype(Float64, x))
 tp64(x::Tuple{H,L}) where {H<:SReal,L<:SReal} = TPVal(Float64, x[1]::H, x[2]::L)
+ofeltype(::Type{T}, x::BaseNumber) where T = convert(eltype(T), x)
 
 include("staticrange.jl")
 include("staticstartrange.jl")

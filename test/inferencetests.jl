@@ -119,15 +119,12 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         s = SVal(2)
         l = SVal(10)
         d = SVal(1)
-
-        # src/floatrange line 1
-        @inferred(sfloatrange(T, b, s, l, d))
+        @test @inferred(sfloatrange(T, b, s, l, d)) == StepSRangeLen{Float32,SFloat64{1.0},SFloat64{2.0},SFloat64{19.0},SInt64{10},SInt64{1}}()
 
         b = SVal(1.0)
         s = SVal(2.0)
         d = SVal(1.0)
-        # src/floatrange line 19
-        @inferred(sfloatrange(b, s, l, d))
+        @test @inferred(sfloatrange(b, s, l, d)) == StepSRangeLen{SFloat64,SFloat64{1.0},SFloat64{2.0},SFloat64{19.0},SInt64{10},SInt64{1}}()
     end
 
     @testset "linspace" begin
@@ -135,8 +132,7 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         b = SVal(1)
         e = SVal(10)
         l = SVal(5)
-
-        @inferred(linspace(T, b, e, l))
+        @test @inferred(linspace(T, b, e, l)) == LinSRange{Int}(b, e, l, SInt(4))
 
         @inferred(linspace(Float64, b, e, l))
 
@@ -144,8 +140,6 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         e = SVal(10)
         l = SVal(5)
         d = SVal(1)
-
-        # src/linspace.jl line 73
         @inferred(linspace(Float64, b, e, l, d))
 
         b = SVal(1.0)
@@ -153,12 +147,11 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         l = SVal(5)
         @inferred(linspace(b, e, l))
 
-        # src/linlspace.jl line 139
         T = Float16
         b = SVal(1.0)
         e = SVal(1.0)
         l = SVal(1)
-        @inferred(linspace1(T, b, e, l))
+        @test @inferred(linspace1(T, b, e, l)) == StepSRangeLen{Float16,SFloat64{1.0},SFloat64{0.0},SFloat64{1.0},SInt64{1},SInt64{1}}()
 
         # src/linspace.jl line 159
 #        @test @inferred(linrange(T,b,e,l)) == StaticRanges.SRange{Float16,SVal{1.0,Float64},SVal{0.0,Float64},Float16(1.0),1,1}()
@@ -208,26 +201,4 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         # steprange_last_empty general
     end
     =#
-
-    # FIXME
-    @testset "StepSRangeLen" begin
-        b = SVal(1.0)
-        s = SVal(2.0)
-        l = SVal(10)
-        f = SVal(1)
-
-        # src/steprangelen.jl line 1
-        @inferred(StepSRangeLen(b, s, l , f))
-        @inferred(StepSRangeLen{Float64}(b, s, l, f))
-
-
-        # src/steprangelen.jl line 9
-        b = TPVal{1.0,0.0}()
-        s = TPVal{2.0,0.0}()
-
-        @inferred(StaticStepRangeLen(b, s, l, f))
-
-        # src/steprangelen.jl line 28
-        @inferred(StepSRangeLen{Float64}(b, s, l, f))
-    end
 end

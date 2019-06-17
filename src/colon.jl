@@ -93,14 +93,14 @@ for (ST,BT) in ((SFloat16, Float16),
                     start_n, start_d = Base.rat(start)
                     stop_n, stop_d = Base.rat(stop)
                     if start_d != 0 && stop_d != 0 &&
-                            $BT(start_n/start_d) == start && $BT(stop_n/stop_d) == stop
+                            (start_n/start_d) == start && (stop_n/stop_d) == stop
                         den = lcm(start_d, step_d) # use same denominator for start and step
                         m = maxintfloat($BT, Int)
                         if den != 0 && abs(start*den) <= m && abs(step*den) <= m &&  # will round succeed?
                                 rem(den, start_d) == 0 && rem(den, step_d) == 0      # check lcm overflow
                             start_n = round(Int, start*den)
                             step_n = round(Int, step*den)
-                            len = max(0, div(den*stop_n - stop_d*start_n + step_n*stop_d, step_n*stop_d))
+                            len = max(SZero, div(den*stop_n - stop_d*start_n + step_n*stop_d, step_n*stop_d))
                             # Integer ops could overflow, so check that this makes sense
                             if isbetween(start, start + (len-1)*step, stop + step/2) &&
                                     !isbetween(start, start + len*step, stop)
@@ -119,8 +119,11 @@ for (ST,BT) in ((SFloat16, Float16),
                 else
                     len = round(Int, lf) + SOne
                     stop′ = start + (len-SOne)*step
-                    # if we've overshot the end, subtract one:
-                    len -= (start < stop < stop′) + (start > stop > stop′)
+                    if len isa SInteger
+                        len -= SInt(start < stop < stop′) + SInt(start > stop > stop′)
+                    else
+                        len -= (start < stop < stop′) + (start > stop > stop′)
+                    end
                 end
                 srangehp($BT, start, step, SOne, len, SOne)
             end

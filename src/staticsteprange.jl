@@ -71,13 +71,13 @@ end
 function StaticStepRange{T,B,S}(start::B, step::S, stop::E) where {B,E,S,T<:Union{Int,UInt,Int64,UInt64,Int128,UInt128}}
     (start != stop) & ((step > 0)) != (stop > start) && return StepSRange{T,B,S,E,typeof(SZero)}()
     if step > 1
-        return StaticStepRange{T,B,S,E}(start, step, stop, int(div(Base.unsigned(stop - start), step)) + one(start))
+        return StaticStepRange{T,B,S,E}(start, step, stop, ofeltype(Int, div(Base.unsigned(stop - start), step)) + one(start))
     elseif step < -1
-        return StaticStepRange{T,B,S,E}(start, step, stop, int(div(Base.unsigned(stop - start), -step)) + one(start))
+        return StaticStepRange{T,B,S,E}(start, step, stop, ofeltype(Int, div(Base.unsigned(stop - start), -step)) + one(start))
     elseif step > 0
-        return StaticStepRange{T,B,S,E}(start, step, stop, int(div(stop - start, step) + one(start)))
+        return StaticStepRange{T,B,S,E}(start, step, stop, ofeltype(Int, div(stop - start, step) + one(start)))
     else
-        return StaticStepRange{T,B,S,E}(start, step, stop, int(div(start - stop, -step) + one(start)))
+        return StaticStepRange{T,B,S,E}(start, step, stop, ofeltype(Int, div(start - stop, -step) + one(start)))
     end
 end
 
@@ -85,7 +85,7 @@ function StaticStepRange{T,B,S}(start::B, step::S, stop::E) where {B,E,S,T}
     (start != stop) &
     ((step > 0)) !=
     (stop > start) ? StepSRange{T,B,S,E}(start, step, stop, SZero) :
-                     StepSRange{T,B,S,E}(start, step, stop, int(div(stop - start + step, step)))
+                     StepSRange{T,B,S,E}(start, step, stop, ofeltype(Int, div(stop - start + step, step)))
 end
 
 StaticStepRange{T,B,S,E}(start::B, step::S, stop::E, len::L) where {T,B<:SVal,S<:SVal,E<:SVal,L<:SInteger} =

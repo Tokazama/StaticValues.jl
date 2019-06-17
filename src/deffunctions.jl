@@ -1,3 +1,5 @@
+import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &, cld, fld
+
 function defbasics(::Type{ST}, ::Type{BT}) where {ST,BT}
     @eval begin
         Base.@pure Base.values(::$ST{V}) where V = V::$BT
@@ -33,18 +35,14 @@ function defmath(::Type{ST}, ::Type{BT}) where {ST,BT}
     STZero = ST(BT(0))
     STZeroType = typeof(STZero)
 
+    for f in (:-, :+, :*, :cld, :fld, :mod, :rem, :div)
+        @eval begin
+            $f(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{$f(V1::$BT, V2::$BT)}()
+        end
+    end
+
     @eval begin
-        Base.:(-)(::$ST{V}) where V = $ST{-V::$BT}()
-        Base.:(-)(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{(-)(V1::$BT, V2::$BT)}()
-        Base.:(+)(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{(+)(V1::$BT, V2::$BT)}()
-        Base.:(*)(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{(*)(V1::$BT, V2::$BT)}()
-
-        Base.div(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{div(V1::$BT, V2::$BT)}()
-        Base.rem(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{rem(V1::$BT, V2::$BT)}()
-        Base.mod(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{mod(V1::$BT, V2::$BT)}()
-        Base.cld(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{cld(V1::$BT, V2::$BT)}()
-        Base.fld(x::$ST{V1}, y::$ST{V2}) where {V1,V2} = $ST{fld(V1::$BT, V2::$BT)}()
-
+        (-)(::$ST{V}) where V = $ST{-V::$BT}()
         function Base.add12(x::$ST, y::$ST)
             x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
             Base.canonicalize2(x, y)

@@ -264,9 +264,9 @@ function /(x::TPVal{Hx,Lx}, y::TPVal{Hy,Ly}) where {Hx,Lx,Hy,Ly}
     ifelse(iszero(hi) | !isfinite(hi), TPVal(hi, hi), ret)
 end
 
-const nbits16 = SInt(cld(precision(Float16), 2))
-const nbits32 = SInt(cld(precision(Float32), 2))
-const nbits64 = SInt(cld(precision(Float64), 2))
+const nbits16 = SInt(Base.cld(precision(Float16), 2))
+const nbits32 = SInt(Base.cld(precision(Float32), 2))
+const nbits64 = SInt(Base.cld(precision(Float64), 2))
 
 # lack of specificity in base requires that these be more verbosely written out
 Base.nbitslen(::Type{Float16}, l::SReal{V1}, f::SReal{V2}) where {V1,V2} =
