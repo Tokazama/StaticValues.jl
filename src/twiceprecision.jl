@@ -1,4 +1,4 @@
-import Base: twiceprecision
+import Base: twiceprecision, rat, narrow, isbetween
 
 function splitprec(::Type{F}, i::SInteger) where {F<:AbstractFloat}
     hi = truncbits(F(i), cld(precision(F), F(2)))
@@ -103,14 +103,76 @@ tpval(::Type{T}, hi::T, lo::T) where T<:BaseReal = TwicePrecision{T}(hi, lo)
 tpval(::Type{T}, frac::Tuple{<:SReal,<:SReal}, n::SInteger) where T = TPVal(T, frac, n)
 tpval(::Type{T}, frac::Tuple{<:BaseNumber,<:BaseNumber}, n::Number) where T = TwicePrecision{T}(frac, values(n))
 
-tpval(::Type{T}, nd::Tuple{N,D}) where {N<:SInteger,D<:SInteger,T<:Union{Float16,Float32}} =
-    TPVal(ofeltype(T, nd[1]::N/nd[2]::D))
+tpval(hi::T, lo::T) where T= TwicePrecision(hi, lo)
+# Numerator/Denominator constructors
+function tpval(::Type{T}, nd::Tuple{BaseInteger,BaseInteger}) where  {T<:Union{Float16,Float32}}
+    n, d = nd
+    TwicePrecision{T}(n/d)
+end
 
-tpval(::Type{T}, ::Tuple{N,D}) where {T,N<:SReal,D<:SReal} = TPVal(ofeltype(T, N())) / D()
+function tpval(::Type{T}, nd::Tuple{<:SInteger,BaseInteger}) where  {T<:Union{Float16,Float32}}
+    n, d = nd
+    TwicePrecision{T}(values(n)/d)
+end
 
-tpval(::Type{T}, nd::Tuple{N,D}, nb::Integer) where {T,N<:SReal,D<:SReal} = Base.twiceprecision(TPVal(T, nd), nb)
+function tpval(::Type{T}, nd::Tuple{BaseInteger,<:SInteger}) where  {T<:Union{Float16,Float32}}
+    n, d = nd
+    TwicePrecision{T}(n/values(d))
+end
+
+function tpval(::Type{T}, nd::Tuple{<:SInteger,<:SInteger}) where  {T<:Union{Float16,Float32}}
+    n, d = nd
+    tpval(T, n/d)
+end
+
+function tpval(::Type{T}, nd::Tuple{<:SReal,<:SReal}) where {T}
+    n, d = nd
+    TPVal(ofeltype(T, n)) / d
+end
+
+function tpval(::Type{T}, nd::Tuple{<:SReal,BaseReal}) where {T}
+    n, d = nd
+    TwicePrecision{T}(values(n)) / d
+end
+
+function tpval(::Type{T}, nd::Tuple{BaseReal,<:SReal}) where {T}
+    n, d = nd
+    TwicePrecision{T}(n) / values(d)
+end
+
+function tpval(::Type{T}, nd::Tuple{BaseReal,BaseReal}) where {T}
+    n, d = nd
+    TwicePrecision{T}(n) / d
+end
 
 
+#=
+for N in (SReal,BaseReal)
+for D in (SReal,BaseReal)
+    if N == BaseReal || D == BaseReal
+        @eval begin
+            tpval(::Type{T}, x::Tuple{$N,$D}) where T = TwicePrecision{T}(values(x[1])) / values(x[2])
+        end
+    else
+        @eval begin
+            tpval(::Type{T}, x::Tuple{$N,$D}) where T = TPVal(ofeltype(T, x[1])) / x[2]
+        end
+    end
+for I in (SInteger,BaseInteger)
+    if N == BaseReal || D == BaseReal || I == BaseInteger
+        @eval begin
+            tpval(::Type{T}, x::Tuple{$N,$D}, nb::$I) where T =
+                Base.twiceprecision(TwicePrecision{T}(values(x[1]),values(x[2])), values(nb))
+        end
+    else
+        @eval begin
+            tpval(::Type{T}, x::Tuple{$N,$D}, nb::$I) where T = Base.twiceprecision(TPVal(T, x[1], x[2]), nb)
+        end
+    end
+end
+end
+end
+=#
 
 tpval(hi::SFloat64{H}, lo::SFloat64{L}) where {H,L} = TPVal{SFloat64{H},SFloat64{L}}()
 tpval(hi::SFloat32{H}, lo::SFloat32{L}) where {H,L} = TPVal{SFloat32{H},SFloat32{L}}()
@@ -253,8 +315,21 @@ end
 # TODO: check this
 
 #*(x::TPVal{V1,T1}, y::TPVal{V2,T2}) where {V1,V2,T1,T2} = *(promote(x, y)...)
-
 /(x::TPVal{H,L}, v::Real) where {H,L} = x / tpval(ofeltype(gethi(x)::H/v, v))
+
+
+/(x::TPVal, v::BaseNumber) = x / TwicePrecision(oftype(gethi(x)/v, v))
+/(x::TPVal, v::SNumber) = x / TPVal(ofeltype(gethi(x)/v, v))
+
+/(v::BaseNumber, x::TPVal) = TwicePrecision(oftype(gethi(x)/v, v)) / x
+/(v::SNumber, x::TPVal) = TPVal(ofeltype(gethi(x)/v, v)) / x
+
+/(v::TwicePrecision, x::TPVal) = v / TwicePrecision(x)
+
+/(v::TPVal, x::TwicePrecision) = TwicePrecision(v) / x
+
+
+
 
 function /(x::TPVal{Hx,Lx}, y::TPVal{Hy,Ly}) where {Hx,Lx,Hy,Ly}
     hi = gethi(x) / gethi(y)
@@ -293,6 +368,7 @@ Base.nbitslen(len::SReal, offset::SReal) = len < 2 ? SZero : ceil(Int, log2(max(
 
 #nbithelper(::Type{T}) where T = cld(SReal(precision(T)), SReal(2))
 
+#=
 function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
     f = trunc(Int, y)
     ynew = y
@@ -312,18 +388,104 @@ function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SRe
         return anew, bnew
     end
 end
+=#
 
-Base.narrow(::Type{T}) where {T<:SFloat} = SFloat64
-Base.narrow(::Type{<:SFloat64}) = SFloat32
-Base.narrow(::Type{<:SFloat32}) = SFloat16
-Base.narrow(::Type{<:SFloat16}) = SFloat16
+narrow(::Type{T}) where {T<:SFloat} = SFloat64
+narrow(::Type{<:SFloat64}) = SFloat32
+narrow(::Type{<:SFloat32}) = SFloat16
+narrow(::Type{<:SFloat16}) = SFloat16
 
-function Base.rat(v::SReal)
-    a = d = one(v)
-    b = c = zero(v)
-    m = maxintfloat(Base.narrow(typeof(v)), Int)
-    _rat(v, v, m, a, b, c, d)
+#=
+function _rat(x::SVal{X}, y::SVal{Y}, m::SVal{M}, a::SVal{A}, b::SVal{B}, c::SVal{C}, d::SVal{D}) where {X,Y,M,A,B,C,D}
+    f = trunc(Int, y)
+    ynew = y
+    ynew -= f
+    anew = f*a + c
+    cnew = a
+    bnew = f*b + d
+    dnew = b
+    if max(abs(anew), abs(bnew)) <= ofeltype(Int, m)
+        return cnew, dnew
+    elseif ofeltype(x, anew)/oftype(x, bnew) == x
+        return anew, bnew
+    elseif abs(ynew) <= m
+        ynew = inv(ynew)
+        _rat(x, ynew, m, anew, bnew, cnew, dnew)
+    else
+        return anew, bnew
+    end
 end
+=#
+#=
+function rat(v::SReal)
+    _rat(v, v, maxintfloat(narrow(typeof(v)), Int), SOne, SZero, SZero, SOne)
+end
+
+function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+   while abs(y) <= m
+        f = trunc(Int, y)
+        y -= f
+        a, c = f*a + c, a
+        b, d = f*b + d, b
+        max(abs(a), abs(b)) <= convert(Int,m) || return c, d
+        ofeltype(x,a) / ofeltype(x,b) == x && break
+        y = inv(y)
+    end
+    return a, b
+end
+=#
+function rat(x::SReal)
+    _getf(x, x, maxintfloat(narrow(typeof(x)), Int), SOne, SZero, SZero, SOne)
+end
+
+function _getf(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    _sub_y(trunc(Int, y), x, y, m, a, b, c, d)
+end
+
+function _sub_y(f::SReal, x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    if abs(y) > m
+        a, b
+    else
+        _update_abcd(f, x, y - f, m, a, b, c, d)
+    end
+end
+
+function _update_abcd(f::SReal, x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    _inv_y(x, y, m, f*a+c, f*b+d, a, b)
+end
+
+function _inv_y(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    if max(abs(a), abs(b)) > ofeltype(Int, m)
+        c, d
+    elseif ofeltype(x,a) / ofeltype(x,b) == x
+        a, b
+    else
+        _getf(x, inv(y), m, a, b, c, d)
+    end
+end
+#=
+function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    if abs(y) <= m
+        a, b
+    else
+        _ratsub(trunc(Int, y), x, y, m, a, b, c, d)
+    end
+end
+
+function _ratsub(f::SReal, x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    _ratsub2(x, y, m, f*a+c, a, f*b+d, b)
+end
+
+function _ratsub2(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)
+    if max(abs(a), abs(b)) <= ofeltype(Int,m)
+        c, d
+    elseif oftype(x,a)/oftype(x,b) == x
+        a, b
+    else
+        _rat(x, y, m, a, b, c, d)
+    end
+end
+=#
 
 # this should be taken care of using promotion
 #<(x::TPVal, y::SReal) = <(x, y)

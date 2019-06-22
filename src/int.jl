@@ -46,7 +46,7 @@ Base.unsigned(x::SBool{false}) = SUInt(0)
 
 Base.Unsigned(x::SInteger) = Base.unsigned(x)
 
-Base.show(io::IO, ::SInteger{V}) where V = show(io, V)
+Base.show(io::IO, v::SInteger) = print(io, "SInteger($(values(v)))")
 
 SI2BI = Dict(SUInt128 => UInt128,
              SUInt16 => UInt16,
@@ -116,6 +116,7 @@ function defint(::Type{ST}, ::Type{BT}) where {ST,BT<:BaseInteger}
             x = SFloat64{sqrt(X::$BT)}()
             :($x)
         end
+        Base.decompose(x::$ST) = x, SInt{0}(), SInt{1}()
     end
 end
 

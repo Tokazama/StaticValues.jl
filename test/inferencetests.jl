@@ -24,7 +24,7 @@
     @testset "Substraction" begin
         for (S1,B1) in S2B
             for (S2,B2) in S2B
-                @test @inferred(S1(1) - S2(1)) == B1(1) - B2(1)
+                @test values(@inferred(S1(1) - S2(1))) === B1(1) - B2(1)
             end
         end
     end
@@ -96,21 +96,20 @@
     end
 end
 
-
 using StaticValues: sfloatrange, linspace, linspace1, srangehp
 @testset "Ranges" begin
     @testset "colon" begin
-        @inferred(srange(Val(10), step=Val(1), stop=Val(0)))
+        @inferred(SInt(10):SInt(1):SInt(0))
 
-        @inferred(srange(Val(1), step=Val(.2), stop=Val(2)))
+        @inferred(SInt(1):SVal(.2):SVal(2))
 
-        @inferred(srange(Val(1.), step=Val(.2), stop=Val(2.)))
+        @inferred(SVal(1.):SVal(.2):SVal(2.))
 
-        @inferred(srange(Val(2), step=Val(-.2), stop=Val(1)))
+        @inferred(SVal(2):SVal(-.2):SVal(1))
 
-        @inferred(srange(Val(0.0), Val(-0.5)))
+        @inferred(SVal(0.0):SVal(-0.5))
 
-        @inferred(srange(Val(1),Val(0)))
+        @inferred(SOne:SZero)
     end
 
     @testset "floatrange" begin
@@ -165,13 +164,10 @@ using StaticValues: sfloatrange, linspace, linspace1, srangehp
         f = SInt(1)
         T = Float64
 
-        # src/srangehp.jl line 1
         @test @inferred(srangehp(T, b, s, nb, l, f)) == StepSRangeLen{Float64,TPVal{SFloat64{1.0},SFloat64{0.0}},TPVal{SFloat64{1.0},SFloat64{0.0}},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
-        # src/srangehp.jl line 7
         @test @inferred(srangehp(Float32, b, s, nb, l, f)) == StepSRangeLen{Float32,SFloat64{1.0},SFloat64{1.0},SFloat64{2.0},SInt64{2},SInt64{1}}()
 
-        # src/srangehp.jl line 21
         b = SVal(1.0)
         s = SVal(1.0)
         @test @inferred(srangehp(T, b, s, nb, l, f)) == StepSRangeLen{Float64,TPVal{SFloat64{1.0},SFloat64{0.0}},TPVal{SFloat64{1.0},SFloat64{0.0}},SFloat64{2.0},SInt64{2},SInt64{1}}()

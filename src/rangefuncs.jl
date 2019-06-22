@@ -1,3 +1,5 @@
+import Base: intersect, reverse
+
 const OverflowSafe = Union{Bool,Int8,Int16,Int32,Int64,Int128,
                            UInt8,UInt16,UInt32,UInt64,UInt128}
 
@@ -11,22 +13,24 @@ function getindex(v::StaticUnitRange{T}, i::Integer) where {T<:OverflowSafe}
     val % T
 end
 
-@inline function _getindex_hiprec(
-    r::StaticStepRangeLen{T},
-    i::I) where {T,B<:Union{<:TPVal,TwicePrecision},I<:Integer}
+@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R<:Union{<:TPVal,TwicePrecision}}
     u = i - offset(r)
     shift_hi, shift_lo = u*getstephi(r), u*getsteplo(r)
-    x_hi, x_lo = Base.add12(getstarthi(r), shift_hi)
-    x_hi, x_lo = Base.add12(x_hi, x_lo + (shift_lo + getstartlo(r)))
+    x_hi, x_lo = add12(getrefhi(r), shift_hi)
+    x_hi, x_lo = add12(x_hi, x_lo + (shift_lo + getreflo(r)))
     tpval(x_hi, x_lo)
+end
+
+@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R} # without rounding by T
+    reference(r) + (i - offset(r)) * step(r)
 end
 
 function getindex(r::StaticUnitRange, s::Union{AbstractUnitRange{<:Integer},StaticUnitRange{<:Integer}})
     Base.@_inline_meta
     @boundscheck checkbounds(r, s)
     f = first(r)
-    st = oftype(f, f + first(s)-1)
-    srange(st, length=length(s))
+    st = ofeltype(f, f + first(s)-SOne)
+    range(st, length=length(s))
 end
 
 
@@ -34,14 +38,14 @@ function getindex(r::StaticUnitRange, s::Union{StepRange{<:Integer},StaticStepRa
     Base.@_inline_meta
     @boundscheck checkbounds(r, s)
     st = ofeltype(first(r), first(r) + first(s)-SOne)
-    srange(st, step=step(s), length=length(s))
+    range(st, step=step(s), length=length(s))
 end
 
 function getindex(r::StaticStepRange, s::AbstractRange{<:Integer})
     Base.@_inline_meta
     @boundscheck checkbounds(r, s)
     st = oftype(first(r), first(r) + (first(s)-SOne)*step(r))
-    srange(st, step=step(r)*step(s), length=length(s))
+    range(st, step=step(r)*step(s), length=length(s))
 end
 
 function getindex(r::StaticStepRangeLen{T},
@@ -50,9 +54,9 @@ function getindex(r::StaticStepRangeLen{T},
     @boundscheck checkbounds(r, s)
     # Find closest approach to offset by s
     ind = LinearIndices(s)
-    offset = max(min(1 + round(Int, (offset(r) - first(s))/step(s)), last(ind)), first(ind))
-    ref = _getindex_hiprec(r, first(s) + (offset-1)*step(s))
-    return StaticStepRangeLen{T}(ref, step(r)*step(s), length(s), offset)
+    f = max(min(1 + round(Int, (offset(r) - first(s))/step(s)), last(ind)), first(ind))
+    ref = _getindex_hiprec(r, first(s) + (f-SOne)*step(s))
+    return StaticStepRangeLen{T}(ref, step(r)*step(s), length(s), f)
 end
 
 function getindex(
@@ -70,13 +74,14 @@ function getindex(r::Union{StaticStepRangeLen,StaticLinRange}, i::Integer)
     unsafe_getindex(r, i)
 end
 
+# TODO ensure this computes the right thing on LinMRange
 unsafe_getindex(r::StaticLinRange{T}, i::I) where {T,I<:Integer} =
-    lerpi(i-one(i), lendiv(r), start(r), last(r))
+    lerpi(i-one(i), lendiv(r), first(r), last(r))
 
 function lerpi(j::Integer, d::Integer, a::A, b::B) where {A,B}
     Base.@_inline_meta
     t = j/d
-    oftype(a, (one(t) - t) * a + t * b)
+    ofeltype(a, (one(t) - t) * a + t * b)
 end
 
 @inline function unsafe_getindex(
@@ -84,16 +89,16 @@ end
     Base.@_inline_meta
     u = i - offset(r)
     shift_hi, shift_lo = u*getstephi(r), u*getsteplo(r)
-    x_hi, x_lo = Base.add12(getstarthi(r), shift_hi)
-    ofeltype(T, x_hi + (x_lo + (shift_lo + getstartlo(r))))
+    x_hi, x_lo = add12(getrefhi(r), shift_hi)
+    ofeltype(T, x_hi + (x_lo + (shift_lo + getreflo(r))))
 end
 
-@inline function unsafe_getindex(
-    r::StaticStepRangeLen{T,B}, i::I) where {T,B,I<:Integer}
+@inline function unsafe_getindex(r::StaticStepRangeLen{T,B}, i::Integer) where {T,B}
     Base.@_inline_meta
-    ofeltype(T, first(r) + (i - offset(r)) * step(r))
+    ofeltype(T, reference(r) + (i - offset(r)) * step(r))
 end
 
+# TODO: inferrence errors
 @inline function Base.iterate(r::Union{StaticLinRange,StaticStepRangeLen}, i::Integer=firstindex(r))
     Base.@_inline_meta
     length(r) < i && return nothing
@@ -138,6 +143,7 @@ function in(x::Real, r::StaticRange{T}) where {T<:Integer}
     isa(x, Integer) && !isempty(r) && x >= minimum(r) && x <= maximum(r) &&
         (mod(ofeltype(T,x), step(r)) - mod(first(r), step(r)) == 0)
 end
+
 function in(x::AbstractChar, r::StaticRange{<:AbstractChar})
     !isempty(r) && x >= minimum(r) && x <= maximum(r) &&
         (mod(Int(x) - Int(first(r)), step(r)) == 0)
@@ -190,6 +196,13 @@ function intersect(r::StaticUnitRange{<:Integer},
     end
 end
 
+function intersect(r::StaticStepRange{<:Integer}, s::Union{AbstractUnitRange{<:Integer},<:StaticUnitRange{<:Integer}})
+    if step(r) < 0
+        reverse(intersect(s, reverse(r)))
+    else
+        intersect(s, r)
+    end
+end
 
 function intersect(r::StaticStepRange, s::Union{<:StepRange,<:StaticStepRange})
     if isempty(r) || isempty(s)
@@ -223,7 +236,7 @@ function intersect(r::StaticStepRange, s::Union{<:StepRange,<:StaticStepRange})
 
     if rem(start1 - start2, g) != 0
         # Unaligned, no overlap possible.
-        return srange(start1, step=a, length=SZero)
+        return range(start1, step=a, length=SZero)
     end
 
     z = div(start1 - start2, g)
@@ -264,7 +277,7 @@ minimum(r::AbstractRange)  = isempty(r) ? throw(ArgumentError("range must be non
 maximum(r::AbstractRange)  = isempty(r) ? throw(ArgumentError("range must be non-empty")) : max(first(r), last(r))
 
 -(r1::StaticStepRangeLen, r2::StaticStepRangeLen) = +(r1, -r2)
--(r::StaticStepRange) = ssrange(-first(r), step=-step(r), length=length(r))
+-(r::StaticStepRange) = range(-first(r), step=-step(r), length=length(r))
 
 -(r::StaticStepRangeLen) = StaticStepRangeLen(-first(r), -step(r), length(r), offset(r))
 -(r::StaticLinRange) = StaticLinRange(-first(r), -last(r), length(r))
@@ -320,3 +333,22 @@ Base.sort(r::StaticRange) = issorted(r) ? r : reverse(r)
 
 Base.sortperm(r::StaticUnitRange) = SOne:length(r)
 Base.sortperm(r::StaticRange) = issorted(r) ? (SOne:SOne:length(r)) : (length(r):-SOne:SOne)
+
+# TODO these can easily be optimized with static params
+Base.isempty(r::StaticStepRange) = (first(r) != last(r)) & ((step(r) > zero(step(r))) != (last(r) > first(r)))
+Base.isempty(r::StaticUnitRange) = first(r) > last(r)
+Base.isempty(r::StaticStepRangeLen) = length(r) == 0
+Base.isempty(r::StaticLinRange) = length(r) == 0
+
+
+==(r::StaticRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+==(r::StaticRange, s::AbstractRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+==(r::AbstractRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+
+
+==(r::Union{StaticStepRangeLen{T},StaticLinRange{T}}, s::Union{StaticStepRangeLen{T},StaticLinRange{T}}) where T =
+    (first(r) == first(s)) & (length(r) == length(s)) & (last(r) == last(s))
+==(r::Union{StepRangeLen{T},LinRange{T}}, s::Union{StaticStepRangeLen{T},StaticLinRange{T}}) where T =
+    (first(r) == first(s)) & (length(r) == length(s)) & (last(r) == last(s))
+==(r::Union{StaticStepRangeLen{T},StaticLinRange{T}}, s::Union{StepRangeLen{T},LinRange{T}}) where T =
+    (first(r) == first(s)) & (length(r) == length(s)) & (last(r) == last(s))

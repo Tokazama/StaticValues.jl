@@ -1,13 +1,50 @@
-for (ST,BT) in StaticValues.SI2BI
-    @eval begin
-        (:)(start::$(ST), stop::$(ST)) = UnitSRange{$BT}(start, stop)
-        (:)(start::$(ST), stop::$BT) = UnitMRange{$BT}(start, stop)
-        (:)(start::$BT,   stop::$(ST)) = UnitMRange{$BT}(start, stop)
+
+# promote start and stop, leaving step alone
+#(:)(start::A, step, stop::C) where {A<:Real,C<:Real} =
+#    (:)(convert(promote_type(A,C),start), step, convert(promote_type(A,C),stop))
+
+for (ST,BT) in S2B
+    for B in (ST,BT)
+    for E in (ST,BT)
+        B == BT && E == BT && continue
+        if BT <: AbstractFloat
+            eval(:((:)(a::$B, b::$E) = (:)(a, $(one(ST)), b)))
+        elseif BT <: Integer
+            if B == ST && E == ST
+                eval(:((:)(a::$B, b::$E) = UnitSRange{$BT}(a, b)))
+            else
+                eval(:((:)(a::$B, b::$E) = UnitMRange{$BT}(a, b)))
+            end
+        else
+            @eval begin
+                (:)(start::$B, stop::$E) = (:)(start, ofeltype(stop-start, SOne), stop)
+                (:)(a::$B, b::AbstractFloat, c::$E) = (:)(promote(a, b, c)...)
+                (:)(a::$B, b::Real, c::$E) = (:)(promote(a, b, c)...)
+            end
+        end
+    end
     end
 end
 
-(:)(start::SVal, stop::SVal) = (:)(start, oftype(stop-start, 1), stop)
+# FIXME
+for (ST,BT) in SI2BI
+    for B in (ST,BT)
+    for S in (ST,BT)
+    for E in (ST,BT)
+        B == BT && S == BT && E == BT && continue
+        @eval begin
+            (:)(a::$B, b::$S, c::$E) = _scolon(Base.OrderStyle($BT), Base.ArithmeticStyle($BT), a, b, c)
+        end
+    end
+    end
+    end
+end
+#(:)(start::A, step, stop::C) where {A<:Real,C<:Real} =
+#    (:)(convert(promote_type(A,C),start), step, convert(promote_type(A,C),stop))
 
+#(:)(start::SVal, stop::SVal) = (:)(start, oftype(stop-start, SOne), stop)
+
+#=
 # promote start and stop, leaving step alone
 function (:)(start::SReal, step, stop::BaseReal)
     T = eltype(start)
@@ -33,7 +70,7 @@ function (:)(start::SReal, step::Integer, stop::SReal)
         (:)(ofeltype(promote_eltype(start, stop), start), step, ofeltype(promote_eltype(start, stop), stop))
     end
 end
-
+=#
 # AbstractFloat specializations
 (:)(start::SFloat, stop::SFloat) = (:)(promote_toeltype(start, stop)...)
 (:)(start::SFloat, stop::BaseFloat) = (:)(promote_toeltype(start, stop)...)
@@ -43,48 +80,73 @@ end
 #(:)(start::T, step::T, stop::T) where {T<:AbstractFloat} =
 #    _colon(OrderStyle(T), ArithmeticStyle(T), start, step, stop)
 
-
-(:)(start::SVal, step::SVal, stop::SVal) = _scolon(start, step, stop)
-(:)(start::Any, step::SVal, stop::SVal) = _scolon(start, step, stop)
-(:)(start::Any, step::Any, stop::SVal) = _scolon(start, step, stop)
-(:)(start::SVal, step::Any, stop::SVal) = _scolon(start, step, stop)
-(:)(start::SVal, step::Any, stop::Any) = _scolon(start, step, stop)
-(:)(start::SVal, step::SVal, stop::Any) = _scolon(start, step, stop)
-(:)(start::Any, step::SVal, stop::Any) = _scolon(start, step, stop)
-
-function _scolon(start::AbstractFloat, step::AbstractFloat, stop::AbstractFloat)
-    T = promote_eltype(start, step, stop)
-    _scolon(ofeltype(T, start), ofeltype(T, step), ofeltype(T, stop))
+#=
+for B in (SVal,BaseAny)
+for S in (SVal,BaseAny)
+for E in (SVal,BaseAny)
+    B == BaseAny && S == BaseAny && E == BaseAny && continue
+    eval(:((:)(start::$B, step::$S, stop::$E) = _scolon(start, step, stop)))
 end
-
-function _scolon(start::Any, step::AbstractFloat, stop::Any)
-    T = promote_eltype(start, step, stop)
-    _scolon(ofeltype(T, start), ofeltype(T, step), ofeltype(T, stop))
 end
-
-function _scolon(start::Any, step::SReal, stop::Any)
-    T2 = eltype(start + zero(start))
-    StaticStepRange{T2}(ofeltype(T2, start), step, ofeltype(T2, stop))
 end
-
-for (ST,BT) in ((SFloat16, Float16),
-                (SFloat32, Float32),
-                (SFloat64, Float64))
-    @eval begin
-        (:)(start::$ST, stop::$ST) = (:)(start, one($ST), stop)
-        (:)(start::$BT, stop::$ST) = (:)(start, one($ST), stop)
-        (:)(start::$ST, stop::$BT) = (:)(start, one($ST), stop)
+=#
+for (ST,BT) in S2B
+    for B in (ST,BT)
+    for S in (SVal,BaseAny)
+    for E in (ST,BT)
+        if B == ST && S == SVal && E == ST
+            @eval begin
+                function _scolon(start::$B, step::$S, stop::$E)
+                    T′ = typeof(start+zero(step))
+                    StepSRange(ofeltype(T′,start), step, ofeltype(T′,stop))
+                end
+            end
+        else
+            @eval begin
+                function _scolon(start::$B, step::$S, stop::$E)
+                    T′ = typeof(start+zero(step))
+                    StepMRange(ofeltype(T′,start), step, ofeltype(T′,stop))
+                end
+            end
+            #=
+           =#
+        end
+        B == BT && S == BaseAny && E == BT && continue
+        @eval begin
+            (:)(a::$B, b::$S, c::$E) = (:)(promote(a,b,c)...)
+        end
+    end
+    end
     end
 end
 
-for (ST,BT) in ((SFloat16, Float16),
-                (SFloat32, Float32),
-                (SFloat64, Float64))
+function _scolon(start::T, step::SVal, stop::T) where T
+    T′ = typeof(start+zero(step))
+    StepSRange(ofeltype(T′,start), step, ofeltype(T′,stop))
+end
+#=
+for (ST,BT) in S2B
+    for B in (ST,BT)
+    for S in (SReal,BaseReal)
+    for E in (ST,BT)
+        B == BT && S == BaseReal && E == BT && continue
+        @eval begin
+            @eval begin
+            end
+        end
+    end
+    end
+    end
+end
+
+=#
+for (ST,BT) in SF2BF
     for B in (ST, BT)
     for S in (ST, BT)
     for E in (ST, BT)
+        B == BT && S == BT && E == BT && continue
         @eval begin
-            function _scolon(start::$B, step::$S, stop::$E)
+            function (:)(start::$B, step::$S, stop::$E)
                 step == 0 && throw(ArgumentError("range step cannot be zero"))
                 # see if the inputs have exact rational approximations (and if so,
                 # perform all computations in terms of the rationals)
@@ -102,7 +164,7 @@ for (ST,BT) in ((SFloat16, Float16),
                             step_n = round(Int, step*den)
                             len = max(SZero, div(den*stop_n - stop_d*start_n + step_n*stop_d, step_n*stop_d))
                             # Integer ops could overflow, so check that this makes sense
-                            if isbetween(start, start + (len-1)*step, stop + step/2) &&
+                            if isbetween(start, start + (len-SOne)*step, stop + step/SVal(2)) &&
                                     !isbetween(start, start + len*step, stop)
                                 # Return a 2x precision range
                                 return sfloatrange($BT, start_n, step_n, len, den)
@@ -136,12 +198,5 @@ end
 
 # without the second method above, the first method above is ambiguous with
 # (:)(start::A, step, stop::C) where {A<:Real,C<:Real}
-
-_scolon(::Base.Ordered, ::Any, start, step, stop) = StaticStepRange(start, step, stop)
-# for T<:Union{Float16,Float32,Float64} see twiceprecision.jl
-_scolon(::Base.Ordered, ::Base.ArithmeticRounds, start, step, stop) =
-    StaticStepRangeLen(start, step, floor(Int, (stop-start)/step)+1)
-_scolon(::Any, ::Any, start, step, stop) =
-    StaticStepRangeLen(start, step, floor(Int, (stop-start)/step)+1)
 
 

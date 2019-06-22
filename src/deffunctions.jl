@@ -1,4 +1,5 @@
-import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &, cld, fld
+import Base: ==, !=, +, -, *, /, ^, <, >, |, <=, >=, ~, :, !, <<, >>, >>>, &,
+             cld, fld, add12, mod, rem, div
 
 function defbasics(::Type{ST}, ::Type{BT}) where {ST,BT}
     @eval begin
@@ -19,11 +20,18 @@ function defbasics(::Type{ST}, ::Type{BT}) where {ST,BT}
         promote_rule(::Type{<:$ST}, ::Type{$BT}) = $BT
 
         (::Type{$BT})(::$ST{X}) where X = X::$BT
-        (::Type{<:$ST{<:Any}})(x::$ST) = x
+        (::Type{<:$ST{<:Any}})(x::$ST{X}) where X = x::$ST{X}
         (::Type{<:$ST{<:Any}})(x::$BT) = $ST{x}()
         (::Type{<:$ST{<:Any}})(x::BaseNumber) = $ST($BT(x))
 
         ofeltype(::Type{$BT}, val::$ST) = val
+        ofeltype(::Type{<:$ST{<:Any}}, val::$BT) = val
+        ofeltype(::Type{<:$ST{<:Any}}, val::$ST) = val
+        ofeltype(::Type{$BT}, val::$BT) = val
+        ofeltype(::$ST, val::$BT) = val
+        ofeltype(::$BT, val::$BT) = val
+        ofeltype(::$ST, val::$ST) = val
+        ofeltype(::$BT, val::$ST) = val
 
         seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
     end
@@ -43,7 +51,7 @@ function defmath(::Type{ST}, ::Type{BT}) where {ST,BT}
 
     @eval begin
         (-)(::$ST{V}) where V = $ST{-V::$BT}()
-        function Base.add12(x::$ST, y::$ST)
+        function add12(x::$ST, y::$ST)
             x, y = ifelse(abs(y) > abs(x), (y, x), (x, y))
             Base.canonicalize2(x, y)
         end

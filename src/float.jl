@@ -28,7 +28,12 @@ function deffloat(::Type{ST}, ::Type{BT}) where {ST,BT<:BaseFloat}
             x = $ST{sqrt(X::$BT)::$BT}()
             :($x)
         end
-
+#=
+        @generated function Base.rat(::$ST{X}) where X
+            n, d = Base.rat(X::$BT)
+            :($(SInt{n}()), $(SInt{d}()))
+        end
+=#
         @generated function log(::$ST{X}) where X
             x = $ST{log(X::$BT)::$BT}()
             :($x)
@@ -129,7 +134,7 @@ function SFloat(val::Val{V}) where V
     end
 end
 
-Base.show(io::IO, ::SFloat{V}) where V = show(io, V)
+Base.show(io::IO, v::SFloat) = print(io, "SFloat($(values(v)))")
 
 const AbstractFloat64 = Union{SFloat64,Float64}
 const AbstractFloat32 = Union{SFloat32,Float32}
@@ -154,5 +159,9 @@ SFloat64One, SFloat64Zero = defmath(SFloat64, Float64)
 SFloat32One, SFloat32Zero = defmath(SFloat32, Float32)
 SFloat16One, SFloat16Zero = defmath(SFloat16, Float16)
 
+function Base.decompose(::SFloat{X}) where X
+    s, e, d = Base.decompose(X)
+    return SInt{s}(), SInt{e}(), SInt{d}()
+end
 
 

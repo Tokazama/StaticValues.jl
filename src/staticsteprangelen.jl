@@ -1,94 +1,89 @@
 """
     StaticStepRangeLen{T,B,S,E,L,F}
 """
-abstract type StaticStepRangeLen{T,B,S,E,L,F} <: StaticOrdinalRange{T,B,S,E,L} end
+abstract type StaticStepRangeLen{T,R,S,E,L,F} <: StaticOrdinalRange{T,R,S,E,L} end
 
-@pure offset(::StaticStepRangeLen{T,B,S,E,L,F}) where {T,B,S,E,L,F<:SInteger} = F()
-@pure offset(::Type{<:StaticStepRangeLen{T,B,S,E,L,F}}) where {T,B,S,E,L,F<:SInteger} = F()
+@pure offset(::StaticStepRangeLen{T,R,S,E,L,F}) where {T,R,S,E,L,F<:SInteger} = F()
+@pure offset(::Type{<:StaticStepRangeLen{T,R,S,E,L,F}}) where {T,R,S,E,L,F<:SInteger} = F()
 
-@pure getstarthi(r::StaticStepRangeLen{T,TPVal{Hb,Lb}}) where {T,Hb,Lb} = Hb()::Hb
-@pure getstartlo(r::StaticStepRangeLen{T,TPVal{Hb,Lb}}) where {T,Hb,Lb} = Lb()::Lb
+@pure reference(::StaticStepRangeLen{T,R,S,E,L,F}) where {T,R<:SVal,S,E,L,F} = R()
+@pure reference(::Type{<:StaticStepRangeLen{T,R,S,E,L,F}}) where {T,R<:SVal,S,E,L,F} = R()
 
-@pure getstephi(r::StaticStepRangeLen{T,B,TPVal{Hs,Ls}}) where {T,B,Hs,Ls} = Hs()::Hs
-@pure getsteplo(r::StaticStepRangeLen{T,B,TPVal{Hs,Ls}}) where {T,B,Hs,Ls} = Ls()::Ls
+@pure getrefhi(r::StaticStepRangeLen{T,TPVal{Hb,Lb}}) where {T,Hb,Lb} = Hb()::Hb
+@pure getreflo(r::StaticStepRangeLen{T,TPVal{Hb,Lb}}) where {T,Hb,Lb} = Lb()::Lb
 
-@inline offset(r::StaticStepRangeLen{T,B,S,E,L,F}) where {T,B,S,E,L,F<:BaseInteger} = getfield(r, :offset)::F
-@inline offset!(r::StaticStepRangeLen{T,B,S,E,L,F}, f::F) where {T,B,S,E,L,F<:BaseInteger} =
-    setfield!(r, :offset, f)
+@pure getstephi(r::StaticStepRangeLen{T,R,TPVal{Hs,Ls}}) where {T,R,Hs,Ls} = Hs()::Hs
+@pure getsteplo(r::StaticStepRangeLen{T,R,TPVal{Hs,Ls}}) where {T,R,Hs,Ls} = Ls()::Ls
+
+@inline first(r::StaticStepRangeLen) = unsafe_getindex(r, SOne)
 
 "StepSRangeLen - Static parametric type variant of StaticStepRangeLen"
-struct StepSRangeLen{T,B,S,E,L,F} <: StaticStepRangeLen{T,B,S,E,L,F} end
+struct StepSRangeLen{T,R,S,E,L,F} <: StaticStepRangeLen{T,R,S,E,L,F}
+    function StepSRangeLen{T,R,S,E,L,F}() where {T,R,S,E,L,F}
+        L() >= 0 || throw(ArgumentError("StepSRangeLen: length cannot be negative, got $(values(L))"))
+        1 <= F() <= max(1, L()) || throw(ArgumentError("StaticStepRangeLen: offset must be in [1,$(values(L))], got $offset"))
+        new{eltype(T),R,S,E,L,F}()  # ensure that T <: BaseType
+    end
+end
+
+StepSRangeLen(ref::R, step::S, len::SInteger, offset::SInteger = SOne) where {R,S} =
+    StepSRangeLen{eltype(ref+SZero*step)}(ref, step, len, offset)
+
+StepSRangeLen{T}(ref::R, step::S, len::SInteger, offset::SInteger = SOne) where {T,R<:SReal,S<:SReal} =
+    StepSRangeLen{T,R,S}(ref, step, ref + (len-offset) * step, len, offset)
+
+function StepSRangeLen{T}(start::TPVal, step::TPVal, len::SInteger, offset::SInteger) where T
+    u = len - offset
+    shift_hi, shift_lo = u*gethi(step), u * getlo(step)
+    x_hi, x_lo = add12(gethi(start), shift_hi)
+    StepSRangeLen{T,typeof(start),typeof(step)}(start, step, ofeltype(T, x_hi + (x_lo + (shift_lo + getlo(start)))), len, offset)
+end
+
+StepSRangeLen{T,B,S}(start::B, step::S, stop::E, len::SInteger, offset::SInteger) where {T,B,S,E} =
+    StepSRangeLen{T,B,S,E,typeof(len),typeof(offset)}()
 
 "StepMRangeLen - Mutable variant of StaticStepRangeLen"
-mutable struct StepMRangeLen{T,B,S,L,F} <: StaticStepRangeLen{T,B,S,Dynamic,L,F}
-    start::B       # reference value (might be smallest-magnitude value in the range)
+mutable struct StepMRangeLen{T,R,S,L,F} <: StaticStepRangeLen{T,R,S,Dynamic,L,F}
+    ref::R       # reference value (might be smallest-magnitude value in the range)
     step::S      # step value
     len::L     # length of the range
     offset::F  # the index of ref
+
+    function StepMRangeLen{T,R,S}(ref::R, step::S, len::Integer, offset::Integer = SOne) where {T,R,S}
+        len >= 0 || throw(ArgumentError("length cannot be negative, got $len"))
+        1 <= offset <= max(1,len) || throw(ArgumentError("StepMRangeLen: offset must be in [1,$len], got $offset"))
+        new{T,R,S,typeof(len),typeof(offset)}(ref, step, len, offset)
+    end
 end
 
-@inline getstarthi(r::StepMRangeLen{T,TwicePrecision{Tb}}) where {T,Tb} = r.start.hi::Tb
-@inline getstartlo(r::StepMRangeLen{T,TwicePrecision{Tb}}) where {T,Tb} = r.start.lo::Tb
+@inline offset(r::StepMRangeLen{T,R,S,L,F}) where {T,R,S,L,F<:BaseInteger} = getfield(r, :offset)
+@inline offset!(r::StepMRangeLen{T,R,S,L,F}, f::F) where {T,R,S,L,F<:BaseInteger} = setfield!(r, :offset, f)
+
+@inline reference(r::StepMRangeLen{T,R,S,L,F}) where {T,R<:BaseAny,S,L,F} = getfield(r, :ref)
+@inline reference!(r::StepMRangeLen{T,R,S,L,F}, ref::R) where {T,R<:BaseAny,S,L,F} = setfield!(r, :ref, ref)
+
+
+StepMRangeLen(ref::R, step::S, len::Integer, offset::Integer = SOne) where {R,S} =
+    StepMRangeLen{eltype(ref+0*step)}(ref, step, len, offset)
+
+StepMRangeLen{T}(ref::R, step::S, len::Integer, offset::Integer=SOne) where {T,R,S} =
+    StepMRangeLen{T,R,S}(ref, step, len, offset)
+
+@inline getrefhi(r::StepMRangeLen{T,TwicePrecision{Tb}}) where {T,Tb} = r.ref.hi::Tb
+@inline getreflo(r::StepMRangeLen{T,TwicePrecision{Tb}}) where {T,Tb} = r.ref.lo::Tb
 
 @inline getstephi(r::StepMRangeLen{T,B,TwicePrecision{Ts}}) where {T,B,Ts} = r.step.hi::Ts
 @inline getsteplo(r::StepMRangeLen{T,B,TwicePrecision{Ts}}) where {T,B,Ts} = r.step.lo::Ts
 
-@inline length!(r::StepMRangeLen{T,B,S,E,L}, len::L) where {T,B,S,E,L<:BaseInteger} =
-    setfield!(r, :len, len)
-length(r::StepMRangeLen{T,B,S,L,F}) where {T,B,S,L,F} = r.len::L
+@inline length!(r::StepMRangeLen{T,B,S,L}, len::L) where {T,B,S,L<:BaseInteger} = setfield!(r, :len, len)
+@inline length(r::StepMRangeLen{T,B,S,L,F}) where {T,B,S,L,F} = getfield(r, :len)
 
+step(r::StepMRangeLen{T,B,S}) where {T,B,S<:BaseAny} = getfield(r, :step)
 
+StaticStepRangeLen(ref::SVal, step::SVal, len::SInteger, offset::SInteger = SOne) = StepSRangeLen(ref, step, len, offset)
+StaticStepRangeLen{T}(ref::SVal, step::SVal, len::SInteger, offset::SInteger = SOne) where T = StepSRangeLen{T}(ref, step, len, offset)
 
-function StaticStepRangeLen{T,B,S}(
-    start::B, step::S, len::L, offset::F) where {T,B<:TPVal,S<:TPVal,L<:SVal,F<:SVal}
-    check_params(StaticStepRangeLen, start, step, len, offset)
+StaticStepRangeLen(ref::R, step::S, len::Integer, offset::Integer = SOne) where {R,S} = StepMRangeLen(ref, step, len, offset)
+StaticStepRangeLen{T}(ref::R, step::S, len::Integer, offset::Integer = SOne) where {T,R,S} = StepMRangeLen{T}(ref, step, len, offset)
 
-    u = len - offset
-    shift_hi, shift_lo = u*gethi(step), u * getlo(step)
-    x_hi, x_lo = Base.add12(gethi(start), shift_hi)
-
-    StepSRangeLen{T,B,S}(ofeltype(T, x_hi + (x_lo + (shift_lo + getlo(start)))), len, offset)
-end
-
-function StaticStepRangeLen{T,B,S}(
-    start::B, step::S, len::L, offset::F) where {T,B<:SVal,S<:SVal,L<:SVal,F<:SVal}
-    check_params(StaticStepRangeLen, start, step, len, offset)
-    StepSRangeLen{T,B,S}(start + (len-offset) * step, len, offset)
-end
-
-StepSRangeLen{T,B,S}(stop::E, len::L, offset::F) where {T,B,S,E,L,F} =
-    StepSRangeLen{T,B,S,E,L,F}()
-
-# fallback to mutable
-StaticStepRangeLen{T,B,S}(start::B, step::S, len::L, offset::F) where {T,B,S,L,F} =
-    StepMRangeLen{T,B,S,L,F}(start, step, len, offset)
-
-StaticStepRangeLen(ref::R, step::S, len::Integer, offset::Integer = SOne) where {R,S} =
-    StaticStepRangeLen{eltype(ref+0*step),R,S}(ref, step, len, offset)
-
-StaticStepRangeLen{T}(ref::R, step::S, len::Integer, offset::Integer = SOne) where {T,R,S} =
-    StaticStepRangeLen{T,R,S}(ref, step, len, offset)
-
-function check_params(::Type{StaticStepRangeLen}, start::B, step::S, len::L, offset::F) where {B,S,L,F}
-    len >= 0 || throw(ArgumentError("StaticStepRangeLen: length cannot be negative, got $len"))
-    1 <= offset <= max(1,len) || throw(ArgumentError("StaticStepRangeLen: offset must be in [1,$len], got $offset"))
-    return nothing
-end
-
-SITuple = Tuple{<:Integer,<:Integer}
-
-srangehp(::Type{Float64}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::Integer) =
-    StaticStepRangeLen(tpval(Float64, b), tpval(Float64, s, nb), l, f)
-
-srangehp(::Type{T}, b::SITuple, s::SITuple, nb::Integer, l::Integer, f::Integer) where T =
-    StaticStepRangeLen{T}(b[1]/b[2], s[1]/s[2], ofeltype(Int64, l), f)
-
-srangehp(::Type{Float64}, b::F_or_FF, s::F_or_FF, nb::Integer, l::Integer, f::Integer) =
-    StaticStepRangeLen(tp64(b), Base.twiceprecision(tp64(s), nb), ofeltype(Int64, l), f)
-
-srangehp(::Type{T}, b::F_or_FF, s::F_or_FF,
-         nb::Integer, l::Integer, f::Integer) where {T<:Union{Float16,Float32}} =
-    StaticStepRangeLen{T}(f64(b), f64(s), ofeltype(Int64, l), f)
-
-showrange(io::IO, r::StaticStepRangeLen) = print(io, "$(values(first(r))):$(values(step(r))):$(values(last(r))) \t (static)")
-
+showrange(io::IO, r::StaticStepRangeLen) = print(io, "$(first(r)):$(step(r)):$(last(r))")

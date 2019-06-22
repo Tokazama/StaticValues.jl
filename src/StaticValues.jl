@@ -28,8 +28,7 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        OffsetSRange,
        OffsetMRange,
        StaticIndices, LinearSIndices,
-       NamedRange,
-       srange
+       NamedRange
 
 struct Dynamic end
 
@@ -46,6 +45,7 @@ const BaseNumber = Union{Int128,Int16,Int32,Int64,Int8,
                          Bool,Float64,Float32,Float16,
                          Rational,Irrational,
                          Complex}
+const BaseAny = Union{<:BaseNumber,Char,TwicePrecision}
 
 include("deffunctions.jl")
 include("signed.jl")

@@ -31,6 +31,7 @@ SRational(n::SInteger) = SRational(n,one(n))
 Base.numerator(::SRational{N,D}) where {N<:SInteger,D<:SInteger} = N()
 Base.denominator(::SRational{N,D}) where {N<:SInteger,D<:SInteger} = D()
 
+Base.decompose(x::SRational) = numerator(x), SZero, denominator(x)
 
 Base.:(//)(n::SInteger,  d::SInteger) = SRational(n,d)
 

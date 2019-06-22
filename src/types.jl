@@ -5,7 +5,6 @@
 #static_integer = (static_unsigned..., static_signed...)
 
 
-
 const SNumber{V} = Union{SComplex{V},SReal{V}}
 
 SNumber(x::BaseReal) = SReal(x)
@@ -114,6 +113,7 @@ for (SI,BI) in SSI2BSI
     end
 end
 
+#Base.signed(x::Unsigned) = reinterpret(typeof(convert(Signed, zero(x))), x
 
 
 #Base.signed(x::Unsigned) = reinterpret(typeof(convert(Signed, zero(x))), x
@@ -153,8 +153,8 @@ for (ST1,BT1) in S2B
                 ofeltype(::$BT1, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
                 ofeltype(::$BT1, val::$BT2) = $BT1(val)
 
-                ofeltype(::Type{$ST1}, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
-                ofeltype(::Type{$ST1}, val::$BT2) = $BT1(val)
+                ofeltype(::Type{<:$ST1}, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
+                ofeltype(::Type{<:$ST1}, val::$BT2) = $BT1(val)
                 ofeltype(::$ST1, val::$ST2{V}) where V = $ST1{$BT1(V::$BT2)}()
                 ofeltype(::$ST1, val::$BT2) = $BT1(val)
 

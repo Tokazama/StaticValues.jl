@@ -44,7 +44,7 @@ UnitMRange{T}(start::T, stop::E) where {T<:BaseInteger,E<:SInteger} =
    UnitMRange{T,T,E}(start, ifelse(stop >= start, stop, ofeltype(T,start-oneunit(stop - start))))
 
 function UnitMRange{T}(start::B, stop::T) where {T,B<:SReal}
-    if stop >= B::T
+    if stop >= start
         UnitMRange{T,B,T}(start, ofeltype(T, start + floor(stop - start)))
     else
         UnitMRange{T,B,T}(start, ofeltype(T, oneunit(stop - start)))

@@ -27,3 +27,7 @@ getvalues(x::BaseNumber) = error("Got $(typeof(x)) instead of static value.")
 @testset "inference" begin
     include("inferencetests.jl")
 end
+
+@testset "ranges" begin
+    include("rangetests.jl")
+end
