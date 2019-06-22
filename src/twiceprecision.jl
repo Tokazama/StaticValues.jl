@@ -434,8 +434,11 @@ function _rat(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SRe
     return a, b
 end
 =#
-function rat(x::SReal)
-    _getf(x, x, maxintfloat(narrow(typeof(x)), Int), SOne, SZero, SZero, SOne)
+@generated function rat(x::SReal{X}) where X
+    n, d = rat(X)  #_getf(x, x, maxintfloat(narrow(typeof(x)), Int), SOne, SZero, SZero, SOne)
+    quote
+        $(SInt(n), SInt(d))
+    end
 end
 
 function _getf(x::SReal, y::SReal, m::SReal, a::SReal, b::SReal, c::SReal, d::SReal)

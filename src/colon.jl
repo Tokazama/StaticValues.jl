@@ -128,7 +128,7 @@ end
 for (ST,BT) in S2B
     for B in (ST,BT)
     for S in (SReal,BaseReal)
-    for E in (ST,BT)
+    for E in (ST,BT)  (Colon())(SFloat(1.0), SFloat(0.2), SFloat(2.0))
         B == BT && S == BaseReal && E == BT && continue
         @eval begin
             @eval begin
@@ -139,33 +139,37 @@ for (ST,BT) in S2B
     end
 end
 
+start = SVal(1.)
+s = SVal(.2)
+stop = SVal(2.)
+isbetween(a, x, b) = (a <= x <= b || b <= x <= a)
 =#
+const STwo = SInt(2)
 for (ST,BT) in SF2BF
     for B in (ST, BT)
     for S in (ST, BT)
     for E in (ST, BT)
         B == BT && S == BT && E == BT && continue
         @eval begin
-            function (:)(start::$B, step::$S, stop::$E)
-                step == 0 && throw(ArgumentError("range step cannot be zero"))
+            function (:)(start::$B, s::$S, stop::$E)
+                s == 0 && throw(ArgumentError("range step cannot be zero"))
                 # see if the inputs have exact rational approximations (and if so,
                 # perform all computations in terms of the rationals)
-                step_n, step_d = Base.rat(step)
-                if step_d != 0 && $BT(step_n/step_d) == step
+                step_n, step_d = Base.rat(s)
+                if step_d != 0 && $BT(step_n/step_d) == s
                     start_n, start_d = Base.rat(start)
                     stop_n, stop_d = Base.rat(stop)
                     if start_d != 0 && stop_d != 0 &&
                             (start_n/start_d) == start && (stop_n/stop_d) == stop
                         den = lcm(start_d, step_d) # use same denominator for start and step
-                        m = maxintfloat($BT, Int)
-                        if den != 0 && abs(start*den) <= m && abs(step*den) <= m &&  # will round succeed?
+                        m = maxintfloat($ST, Int)
+                        if den != 0 && abs(start*den) <= m && abs(s*den) <= m &&  # will round succeed?
                                 rem(den, start_d) == 0 && rem(den, step_d) == 0      # check lcm overflow
                             start_n = round(Int, start*den)
-                            step_n = round(Int, step*den)
+                            step_n = round(Int, s*den)
                             len = max(SZero, div(den*stop_n - stop_d*start_n + step_n*stop_d, step_n*stop_d))
                             # Integer ops could overflow, so check that this makes sense
-                            if isbetween(start, start + (len-SOne)*step, stop + step/SVal(2)) &&
-                                    !isbetween(start, start + len*step, stop)
+                            if isbetween(start, start + (len-SOne)*s, stop + s/STwo) && !isbetween(start, start + len*s, stop)
                                 # Return a 2x precision range
                                 return sfloatrange($BT, start_n, step_n, len, den)
                             end
@@ -173,21 +177,21 @@ for (ST,BT) in SF2BF
                     end
                 end
                 # Fallback, taking start and step literally
-                lf = (stop-start)/step
+                lf = (stop-start)/s
                 if lf < 0
                     len = SZero
                 elseif lf == 0
                     len = SOne
                 else
                     len = round(Int, lf) + SOne
-                    stop′ = start + (len-SOne)*step
+                    stop′ = start + (len-SOne)*s
                     if len isa SInteger
                         len -= SInt(start < stop < stop′) + SInt(start > stop > stop′)
                     else
                         len -= (start < stop < stop′) + (start > stop > stop′)
                     end
                 end
-                srangehp($BT, start, step, SOne, len, SOne)
+                srangehp($BT, start, s, SOne, len, SOne)
             end
         end
     end
@@ -198,5 +202,3 @@ end
 
 # without the second method above, the first method above is ambiguous with
 # (:)(start::A, step, stop::C) where {A<:Real,C<:Real}
-
-

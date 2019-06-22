@@ -314,7 +314,7 @@ end
 function linspace1(::Type{T}, b::B, e::E, l::Integer) where {B,E,T<:Union{Float16, Float32, Float64}}
     l >= SZero || throw(ArgumentError("srange($(values(b)), stop=$(values(e)), length=$(values(l))): negative length"))
     if l <= 1
-        l == 1 && (b == e || throw(ArgumentError("srange($(values(b)), stop=$(values(e)), length=$(values(l))): endpoints differ")))
+        l == 1 && (b == e || throw(ArgumentError("srange($(b), stop=$(e), length=$(l)): endpoints differ")))
         # Ensure that first(r)==start and last(r)==stop even for len==0
         # The output type must be consistent with steprangelen_hp
         if T<:Union{Float32,Float16}
