@@ -164,4 +164,11 @@ function Base.decompose(::SFloat{X}) where X
     return SInt{s}(), SInt{e}(), SInt{d}()
 end
 
+for (S,B) in SI2BI
+    @eval begin
+        Base.trunc(::Type{$B}, x::SFloat{X}) where X = $S{trunc($B, X)}()
+    end
+end
+
+Base.trunc(::Type{Integer}, x::SFloat{X}) where X = SInt{trunc(Integer, X)}()
 

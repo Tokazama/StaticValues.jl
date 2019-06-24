@@ -87,3 +87,43 @@ StaticStepRangeLen(ref::R, step::S, len::Integer, offset::Integer = SOne) where 
 StaticStepRangeLen{T}(ref::R, step::S, len::Integer, offset::Integer = SOne) where {T,R,S} = StepMRangeLen{T}(ref, step, len, offset)
 
 showrange(io::IO, r::StaticStepRangeLen) = print(io, "$(first(r)):$(step(r)):$(last(r))")
+
+isstatic(::StepSRangeLen) = true
+isstatic(::Type{<:StepSRangeLen}) = true
+
+isstatic(::StepMRangeLen) = false
+isstatic(::Type{<:StepMRangeLen}) = false
+
+#promote_rule(a::Type{StepRangeLen{T,R,S}}, ::Type{OR}) where {T,R,S,OR<:AbstractRange} =
+#    promote_rule(a, StepRangeLen{eltype(OR), eltype(OR), eltype(OR)})
+Base.StepRangeLen(r::StaticRange) = StepRangeLen{eltype(r)}(r)
+Base.StepRangeLen{T}(r::StaticRange) where {T} =
+    StepRangeLen(T(first(r)), T(step(r)), values(length(r)))
+Base.StepRangeLen{T,R,S}(r::StaticRange) where {T,R,S} =
+    StepRangeLen{T,R,S}(R(first(r)), S(step(r)), values(length(r)))
+
+StepSRangeLen(r::AbstractRange) = StepSRangeLen{eltype(r)}(r)
+StepSRangeLen{T}(r::AbstractRange) where {T} =
+    StepSRangeLen(SVal(ofeltype(T, first(r))), SVal(ofeltype(T, step(r))), SVal(length(r)))
+StepSRangeLen{T,R,S}(r::AbstractRange) where {T,R,S} =
+    StepSRangeLen(SVal(R(first(r))), SVal(S(step(r))), SVal(length(r)))
+
+StepMRangeLen(r::AbstractRange) = StepMRangeLen{eltype(r)}(r)
+StepMRangeLen{T}(r::AbstractRange) where {T} =
+    StepMRangeLen(ofeltype(T, first(r)), ofeltype(T, step(r)), length(r))
+StepMRangeLen{T,R,S}(r::AbstractRange) where {T,R,S} =
+    StepMRangeLen{T}(R(first(r)), S(step(r)), length(r))
+
+@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R<:Union{<:TPVal,TwicePrecision}}
+    u = i - offset(r)
+    shift_hi, shift_lo = u*getstephi(r), u*getsteplo(r)
+    x_hi, x_lo = add12(getrefhi(r), shift_hi)
+    x_hi, x_lo = add12(x_hi, x_lo + (shift_lo + getreflo(r)))
+    tpval(x_hi, x_lo)
+end
+
+@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R} # without rounding by T
+    reference(r) + (i - offset(r)) * step(r)
+end
+
+

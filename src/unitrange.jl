@@ -90,8 +90,57 @@ UnitSRange{T,B}(start::B, stop::E) where {T<:Real,B,E} =
 
 UnitSRange{T,B,E}(start::B, stop::E, len::L) where {T,B,E,L} = UnitSRange{T,B,E,L}()
 
+isstatic(::UnitSRange) = true
+isstatic(::Type{<:UnitSRange}) = true
+isstatic(::UnitMRange) = true
+isstatic(::Type{<:UnitMRange}) = false
+
+#promote_rule(a::Type{UnitRange{T1}}, b::Type{UnitRange{T2}}) where {T1,T2} = el_same(promote_type(T1,T2), a, b)
+Base.UnitRange(r::StaticUnitRange) = UnitRange(values(first(r)), values(last(r)))
+Base.UnitRange{T}(r::StaticUnitRange) where {T<:Real} = UnitRange{T}(values(first(r)), values(last(r)))
+
+UnitSRange(r::Union{AbstractUnitRange,UnitMRange}) = UnitSRange(tostatic(first(r)), tostatic(last(r)))
+UnitMRange(r::Union{AbstractUnitRange,UnitSRange}) = UnitMRange(first(r), last(r))
+UnitMRange(r::UnitMRange) = r
+UnitSRange(r::UnitSRange) = r
+
+UnitSRange{T}(r::Union{AbstractUnitRange,UnitMRange}) where T = UnitSRange(tostatic(first(r)), tostatic(last(r)))
+UnitMRange{T}(r::Union{AbstractUnitRange,UnitSRange}) where T = UnitMRange(first(r), last(r))
+UnitMRange{T}(r::UnitMRange{T}) where T = r
+UnitSRange{T}(r::UnitSRange{T}) where T = r
+UnitMRange{T}(r::UnitMRange) where T = UnitSRange(tostatic(first(r)), tostatic(last(r)))
+UnitSRange{T}(r::UnitSRange) where T = UnitMRange(first(r), last(r))
+
+#promote_rule(a::Type{UnitRange{T1}}, ::Type{UR}) where {T1,UR<:AbstractUnitRange} =
+#    promote_rule(a, UnitRange{eltype(UR)})
+
 StaticUnitRange{T}(start::SVal, stop::SVal) where T = UnitSRange{T}(start, stop)
 StaticUnitRange{T}(start::SVal, stop::Any) where T = UnitMRange{T}(start, stop)
 StaticUnitRange{T}(start::Any, stop::SVal) where T = UnitMRange{T}(start, stop)
+
+const OverflowSafe = Union{Bool,Int8,Int16,Int32,Int64,Int128,
+                           UInt8,UInt16,UInt32,UInt64,UInt128}
+
+_in_unit_range(v::StaticUnitRange, val, i::Integer) =
+    i > 0 && val <= last(v) && val >= first(v)
+
+function getindex(v::StaticUnitRange{T}, i::Integer) where {T<:OverflowSafe}
+    Base.@_inline_meta
+    val = first(v) + (i - one(i))
+    @boundscheck _in_unit_range(v, val, i) || Base.throw_boundserror(v, i)
+    val % T
+end
+
+function getindex(r::StaticUnitRange, s::Union{AbstractUnitRange{<:Integer},StaticUnitRange{<:Integer}})
+    Base.@_inline_meta
+    @boundscheck checkbounds(r, s)
+    f = first(r)
+    st = ofeltype(f, f + first(s)-SOne)
+    if st isa SReal
+        return range(st, length=SInteger(length(s)))
+    else
+        return range(st, length=length(s))
+    end
+end
 
 showrange(io::IO, r::StaticUnitRange) = print(io, "$(first(r)):$(last(r))")

@@ -18,6 +18,8 @@ struct LinSRange{T,B,S,E,L,D} <: StaticLinRange{T,B,S,E,L,D}
     LinSRange{T}(start::B, step::S, stop::E, len::L, lendiv::D) where {T,B,S,E,L,D} = new{T,B,S,E,L,D}()
 end
 
+isstatic(::LinSRange) = true
+isstatic(::Type{<:LinSRange}) = true
 
 LinSRange{T}(start::B, stop::E, len::L) where {T,B,E,L} =
     LinSRange{T}(start, stop, len, max(len-SOne, SOne))
@@ -48,6 +50,8 @@ length!(r::LinMRange{T,B,E,L}, len::L) where {T,B,E,L<:BaseNumber} = setfield!(r
 
 lendiv(r::LinMRange) = max(length(r)-SOne, SOne)
 
+isstatic(::LinMRange) = false
+isstatic(::Type{<:LinMRange}) = false
 
 #LinMRange{T}(start::B, stop::E, len::L, lendiv::D) where {T,B,E,L,D} =
 #    LinMRange{T,B,E,L}(start, stop, len, lendiv)

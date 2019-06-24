@@ -16,19 +16,17 @@ export SInt128, SInt16, SInt32, SInt64, SInt, SInt8,
        SVal, TPVal,
        SOne, SZero,
        SChar, SSymbol,
-       UnitSRange,
-       UnitMRange,
+       UnitSRange, UnitMRange,
 #       OneToSRange,
        StaticStepRangeLen,
        StepSRangeLen,
-       StepSRange,
-       StepMRange,
-       LinSRange,
-       LinMRange,
-       OffsetSRange,
-       OffsetMRange,
-       StaticIndices, LinearSIndices,
-       NamedRange
+       StepSRange, StepMRange,
+       LinSRange, LinMRange,
+       OffsetSRange, OffsetMRange,
+       CartesianSIndices, CartesianMIndices, LinearSIndices, LinearMIndices,
+       NamedRange,
+       AbstractIndices, SIndices, MIndices
+
 
 struct Dynamic end
 
@@ -82,19 +80,45 @@ ofeltype(::Type{T}, x::BaseNumber) where T = convert(eltype(T), x)
 
 include("staticrange.jl")
 include("staticstartrange.jl")
-include("staticunitrange.jl")
+include("unitrange.jl")
 include("staticordinalrange.jl")
-include("staticsteprange.jl")
-include("staticlinrange.jl")
-include("staticsteprangelen.jl")
+include("steprange.jl")
+include("linrange.jl")
+include("steprangelen.jl")
 include("srange.jl")
 include("colon.jl")
 include("rangefuncs.jl")
 include("offsetrange.jl")
 include("staticrangewrapper.jl")
 include("namedrange.jl")
+include("indices.jl")
+
+"""
+    isstatic(x) -> Bool
+
+Determine whether a type is static.
+
+# Examples
+```jldoctest
+julia> isstatic(SOne)
+true
+
+julia> isstatic(1)
+false
+```
+"""
+function isstatic end
+
+# TODO examples, and ensure all ranges have this
+"""
+    tostatic(x)
+
+Returns the statically defined version of a type.
+"""
+function tostatic end
+
+
 
 #include("math.jl")
-#
 
 end

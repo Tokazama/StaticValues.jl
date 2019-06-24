@@ -195,7 +195,7 @@ end
     @test !(Complex(1.0, 1.0) in SOne:SVal(3))
     @test !(Complex(1.0, 1.0) in SVal(1.0):SVal(3.0))
     @test !(π in SOne:SVal(3))
-# FIXME    @test !(π in SVal(1.0):SVal(3.0))
+    @test !(π in SVal(1.0):SVal(3.0))
     @test !("a" in SOne:SVal(3))
     @test !("a" in SVal(1.0):SVal(3.0))
 

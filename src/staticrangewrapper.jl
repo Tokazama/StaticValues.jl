@@ -3,6 +3,8 @@ const MRange{T} = Union{<:UnitMRange{T},<:StepMRange{T},<:StepMRangeLen{T},<:Lin
 
 abstract type StaticRangeWrapper{T,R<:StaticRange{T}} <: AbstractRange{T} end
 
+@pure parent(r::StaticRangeWrapper{T,R}) where {T,R<:SRange} = R()::R
+
 @inline first(r::StaticRangeWrapper) = first(parent(r))
 @inline step(r::StaticRangeWrapper) = step(parent(r))
 @inline last(r::StaticRangeWrapper) = last(parent(r))
@@ -12,8 +14,5 @@ abstract type StaticRangeWrapper{T,R<:StaticRange{T}} <: AbstractRange{T} end
 
 @inline size(r::StaticRangeWrapper) = firstindex(parent(r))
 @inline length(r::StaticRangeWrapper) = firstindex(parent(r))
-
-@pure Base.parent(r::StaticRangeWrapper{T,R}) where {T,R<:SRange} = R()
-
 
 

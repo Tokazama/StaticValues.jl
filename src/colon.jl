@@ -198,7 +198,3 @@ for (ST,BT) in SF2BF
     end
     end
 end
-
-
-# without the second method above, the first method above is ambiguous with
-# (:)(start::A, step, stop::C) where {A<:Real,C<:Real}

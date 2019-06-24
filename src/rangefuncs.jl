@@ -1,38 +1,5 @@
 import Base: intersect, reverse
 
-const OverflowSafe = Union{Bool,Int8,Int16,Int32,Int64,Int128,
-                           UInt8,UInt16,UInt32,UInt64,UInt128}
-
-_in_unit_range(v::StaticUnitRange, val, i::Integer) =
-    i > 0 && val <= last(v) && val >= first(v)
-
-function getindex(v::StaticUnitRange{T}, i::Integer) where {T<:OverflowSafe}
-    Base.@_inline_meta
-    val = first(v) + (i - one(i))
-    @boundscheck _in_unit_range(v, val, i) || Base.throw_boundserror(v, i)
-    val % T
-end
-
-@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R<:Union{<:TPVal,TwicePrecision}}
-    u = i - offset(r)
-    shift_hi, shift_lo = u*getstephi(r), u*getsteplo(r)
-    x_hi, x_lo = add12(getrefhi(r), shift_hi)
-    x_hi, x_lo = add12(x_hi, x_lo + (shift_lo + getreflo(r)))
-    tpval(x_hi, x_lo)
-end
-
-@inline function _getindex_hiprec(r::StaticStepRangeLen{T,R}, i::Integer) where {T,R} # without rounding by T
-    reference(r) + (i - offset(r)) * step(r)
-end
-
-function getindex(r::StaticUnitRange, s::Union{AbstractUnitRange{<:Integer},StaticUnitRange{<:Integer}})
-    Base.@_inline_meta
-    @boundscheck checkbounds(r, s)
-    f = first(r)
-    st = ofeltype(f, f + first(s)-SOne)
-    range(st, length=length(s))
-end
-
 
 function getindex(r::StaticUnitRange, s::Union{StepRange{<:Integer},StaticStepRange{<:Integer}})
     Base.@_inline_meta
@@ -54,7 +21,7 @@ function getindex(r::StaticStepRangeLen{T},
     @boundscheck checkbounds(r, s)
     # Find closest approach to offset by s
     ind = LinearIndices(s)
-    f = max(min(1 + round(Int, (offset(r) - first(s))/step(s)), last(ind)), first(ind))
+    f = max(min(SOne + round(Int, (offset(r) - first(s))/step(s)), last(ind)), first(ind))
     ref = _getindex_hiprec(r, first(s) + (f-SOne)*step(s))
     return StaticStepRangeLen{T}(ref, step(r)*step(s), length(s), f)
 end
@@ -123,21 +90,8 @@ function reverse(r::StaticStepRangeLen)
     offset = isempty(r) ? offset(r) : length(r)-offset(r)+One
     StaticStepRangeLen(first(r), -step(r), length(r), offset)
 end
+
 reverse(r::StaticLinRange) = StaticLinRange(last(r), first(r), length(r))
-
-function _in_range(x, r::StaticRange)
-    if step(r) == 0
-        return !isempty(r) && first(r) == x
-    else
-        n = round(Integer, (x - first(r)) / step(r)) + 1
-        return n >= 1 && n <= length(r) && r[n] == x
-    end
-end
-
-in(x::Real, r::StaticRange{<:Real}) = _in_range(x, r)
-# This method needs to be defined separately since -(::T, ::T) can be implemented
-# even if -(::T, ::Real) is not
-in(x::T, r::StaticRange{T}) where {T} = _in_range(x, r)
 
 function in(x::Real, r::StaticRange{T}) where {T<:Integer}
     isa(x, Integer) && !isempty(r) && x >= minimum(r) && x <= maximum(r) &&
@@ -149,9 +103,7 @@ function in(x::AbstractChar, r::StaticRange{<:AbstractChar})
         (mod(Int(x) - Int(first(r)), step(r)) == 0)
 end
 
-function in(x::Integer, r::StaticUnitRange)
-    ( first(r) <= x) & (x <= last(r))
-end
+in(x::Integer, r::StaticUnitRange{<:Integer}) = (first(r) <= x) & (x <= last(r))
 
 function in(x, r::StaticRange)
     anymissing = false
@@ -324,7 +276,6 @@ function +(
 end
 
 Base.issorted(r::StaticUnitRange) = true
-Base.issorted(r::StaticRange) = length(r) <= 1 || step(r) >= zero(step(r))
 
 Base.sort(r::StaticUnitRange) = r
 Base.sort!(r::StaticUnitRange) = r

@@ -15,6 +15,7 @@ StepSRange{T,B,S}(start::B, step::S, stop::E) where {B,E,S,T} = StepSRange{T,B,S
 
 StepSRange{T,B,S,E}(start::B, step::S, stop::E, len::L) where {T,B,S,E,L} = StepSRange{T,B,S,E,L}()
 
+
 "StepMRange - Mutable variant of StaticStepRange"
 mutable struct StepMRange{T,B,S,E} <: StaticStepRange{T,B,S,E,Dynamic}
     start::B
@@ -35,6 +36,12 @@ StepMRange(start::B, step::S, stop::E) where {B,S,E} = StepMRange{eltype(start)}
 StepMRange{T}(start::B, step::S, stop::E) where {T,B,S,E} = StepMRange{T,B,S}(start, step, _steprange_last(start, step, stop))
 
 StepMRange{T,B,S}(start::B, step::S, stop::E) where {T,B,S,E} = StepMRange{T,B,S,E}(start, step, stop)
+
+isstatic(::StepSRange) = true
+isstatic(::Type{<:StepSRange}) = true
+
+isstatic(::StepMRange) = false
+isstatic(::Type{<:StepMRange}) = false
 
 #=
 function _steprange_last(start::B, step::S, stop::E) where {B<:Real,S<:Real,E<:Real}
@@ -133,5 +140,9 @@ function steprange_len(start::B, step::S, stop::E) where {B<:Integer,S,E}
         div(start - stop, -step) + one(B)
     end
 end
+
+Base.StepRange(r::StaticUnitRange) = UnitRange(values(first(r)), values(last(r)))
+#UnitSRange(r::UnitRange{T}) where T = UnitSRange{T}(SVal(first(r)), SVal(last(r)))
+#UnitMRange(r::UnitRange{T}) where T = UnitSRange{T}(first(r), last(r))
 
 

@@ -5,31 +5,6 @@ maybe_sval(val::SVal) = val
 maybe_sval(::Nothing) = nothing
 maybe_sval(val) = val
 
-"""
-    srange
-
-# Examples
-```jldoctest
-julia> using StaticRanges
-
-julia> 
-```
-"""
-
-function srange(start::B; length::L=nothing, stop::E=nothing, step::S=nothing) where {B,S,E,L}
-    _sr(maybe_sval(start),
-        maybe_sval(step),
-        maybe_sval(stop),
-        maybe_sval(length))
-end
-
-function srange(start::B, stop::E; length::L=nothing, step::S=nothing) where {B,S,E,L}
-    _sr(maybe_sval(start),
-        maybe_sval(step),
-        maybe_sval(stop),
-        maybe_sval(length))
-end
-
 # floor(Int, (stop-start)/step)
 for (ST,BT) in S2B
     for B in (ST,BT)
@@ -119,41 +94,6 @@ for (ST,BT) in SI2BI
     end
 end
 
-# For Float16, Float32, and Float64, this returns a StepRangeLen
-#=
-for (ST,BT) in SF2BF
-    for B in (ST,BT)
-    for E in (ST,BT)
-    for L in (SInteger,BaseInteger)
-        B == BT && E == BT && L == BaseInteger && continue
-        @eval begin
-            function _range(start::$B, ::Nothing, stop::$E, len::$L)
-                len < 2 && return linspace1(T, start, stop, len)
-                if start == stop
-                    return srangehp(eltype(start), start, zero(start), SZero, len, SOne)
-                end
-                # Attempt to find exact rational approximations
-                start_n, start_d = rat(start)
-                stop_n, stop_d = rat(stop)
-                if start_d != 0 && stop_d != 0
-                    den = lcm(start_d, stop_d)
-                    m = maxintfloat(typeof(start), Int)
-                    if den != 0 && abs(den*start) <= m && abs(den*stop) <= m
-                        start_n = round(Int, den*start)
-                        stop_n = round(Int, den*stop)
-                        if T(start_n/den) == start && T(stop_n/den) == stop
-                            return linspace(eltype(start), start_n, stop_n, len, den)
-                        end
-                    end
-                end
-                linspace(start, stop, len)
-            end
-        end
-    end
-    end
-    end
-end
-=#
 for (SF,BF) in SF2BF
     for B in (SF,BF)
     for S in (SF,BF)

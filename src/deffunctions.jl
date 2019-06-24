@@ -33,6 +33,16 @@ function defbasics(::Type{ST}, ::Type{BT}) where {ST,BT}
         ofeltype(::$ST, val::$ST) = val
         ofeltype(::$BT, val::$ST) = val
 
+        isstatic(::$ST) = true
+        isstatic(::Type{<:$ST}) = true
+        isstatic(::$BT) = false
+        isstatic(::Type{$BT}) = false
+
+        tostatic(x::$ST) = x
+        tostatic(x::Type{<:$ST}) = x
+        tostatic(x::$BT) = $ST{x}()
+        tostatic(x::Type{$BT}) = $ST
+
         seek_static_val(::Type{$BT}, val::Val{V}) where V = $ST{V}()
     end
 end

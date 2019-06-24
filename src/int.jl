@@ -205,7 +205,3 @@ function >>(x::SInteger, c::SInteger)
     oftype(x, -SOne)
 end
 =#
-
-
-
-
