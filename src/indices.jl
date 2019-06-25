@@ -69,7 +69,7 @@ mutable struct LinearMIndices{T,N,I} <: StaticLinearIndices{T,N,I,Dynamic}
 end
 
 LinearMIndices(inds::Vararg{<:AbstractRange,N}) where N = LinearMIndices(inds)
-LinearMIndices(inds::Tuple{Vararg{<:StaticRange,N}}) where N =
+LinearMIndices(inds::Tuple{Vararg{<:AbstractRange,N}}) where N =
     LinearMIndices{typejoin(_axeltype(inds)...),N,typeof(inds)}(inds)
 
 const SIndices{T,N,I,L} = Union{LinearSIndices{T,N,I,L},CartesianSIndices{T,N,I,L}}
@@ -124,18 +124,30 @@ function getindex(inds::StaticCartesianIndices, i::Integer)
     @inbounds unsafe_getindex(inds, i)
 end
 
+#=
+function unsafe_getindex(ci::CartesianSIndices{T,N,I,L}, i::BaseInteger)::T where {T,N,I,L}
+    out = []
+    ind = i - 1
+    for ax in axes(ci)
+        indnext = div(ind, length(ax))
+        push!(out, first(ax) + (ind - length(ax) * indnext + 1 - firstindex(ax)) * step(ax))
+        ind = indnext
+    end
+    return Tuple(out)
+end
+
+
+
 @generated function unsafe_getindex(ci::CartesianSIndices{T,N,I,L}, i::BaseInteger) where {T,N,I,L}
     out = Expr[]
     ind = :(i - 1)
-    ax = :()
-    indnext = :()
     for D in 1:N
-        ax = axes(ci, D)
-        indnext = :(div($ind, length($ax)))
+        ax = :(axes($ci, $D))
+        indnext = :(div($ind, _length($ax)))
         if D == 1
-            push!(out, :(first($ax) + ($ind - length($ax) * $indnext + 1 - firstindex($ax)) * step($ax)))
+            push!(out, :(first($ax) + ($ind - _length($ax) * $indnext + 1 - firstindex($ax)) * step($ax)))
         else
-            push!(out, :(first($ax) + ($ind - length($ax) *  $indnext + 1 - firstindex($ax)) * step($ax)))
+            push!(out, :(first($ax) + ($ind - _length($ax) *  $indnext + 1 - firstindex($ax)) * step($ax)))
         end
         ind = indnext
     end
@@ -144,6 +156,9 @@ end
     end
 end
 
+_length(::UnitSRange{T,B,E,L}) where {T,B,E,L} = values(L)
+
+=#
 @generated function unsafe_getindex(inds::CartesianSIndices{T,N,I,L}, i::SInteger) where {T,N,I,L}
     out = []
     ind = i - SOne
@@ -162,6 +177,44 @@ end
     end
 end
 
+#@generated function unsafe_getindex(inds::CartesianSIndices{T,N,I}, i::Integer) where {T,N,I}
+#    :(_ind2subs($(axes(inds)), i - 1))
+#end
+
+
+@inline function unsafe_getindex(inds::StaticCartesianIndices{T,N,I}, i::Integer) where {T,N,I}
+    Base.@_inline_meta
+    _ind2sub(axes(inds), i)::T
+end
+
+
+_ind2sub(::Tuple{}, ind::Integer) = (Base.@_inline_meta; ind == 1 ? () : throw(BoundsError()))
+_ind2sub(dims::Base.DimsInteger, ind::Integer) = (Base.@_inline_meta; _ind2sub_recurse(dims, ind-1))
+_ind2sub(inds::Tuple{Vararg{<:AbstractRange,N}}, ind::Integer) where N =
+    (Base.@_inline_meta; _ind2sub_recurse(inds, ind-1))
+_ind2sub(inds::Tuple{AbstractArray}, ind::Integer) =
+    throw(ArgumentError("Linear indexing is not defined for one-dimensional arrays"))
+#_ind2sub(inds::Tuple{OneTo}, ind::Integer) = (ind,)
+
+_ind2sub_recurse(::Tuple{}, ind) = (ind+1,)
+function _ind2sub_recurse(indslast::NTuple{1}, ind)
+    Base.@_inline_meta
+    (_lookup(ind, indslast[1]),)
+end
+function _ind2sub_recurse(inds, ind)
+    Base.@_inline_meta
+    r1 = inds[1]
+    indnext, f, l = _div(ind, r1)
+    (ind-l*indnext+f, _ind2sub_recurse(Base.tail(inds), indnext)...)
+end
+
+_lookup(ind, d::Integer) = ind+1
+_lookup(ind, r::AbstractUnitRange) = ind+first(r)
+_lookup(ind, r::StaticUnitRange) = ind+first(r)
+_div(ind, d::Integer) = div(ind, d), 1, d
+_div(ind, r::AbstractUnitRange) = (d = length(r); (div(ind, d), first(r), d))
+_div(ind, r::StaticUnitRange) = (d = length(r); (div(ind, d), first(r), d))
+
 # TODO
 function getindex(inds::StaticLinearIndices{T,N}, i::Vararg{T,N}) where {T,N}
     Base.@_inline_meta
@@ -169,24 +222,26 @@ function getindex(inds::StaticLinearIndices{T,N}, i::Vararg{T,N}) where {T,N}
     @inbounds unsafe_getindex(inds, i)
 end
 
-Base.@propagate_inbounds function unsafe_getindex(li::LinearMIndices{T,N,I}, i::NTuple{T,N}) where {T,N,I}
-    Base.@_inline_meta
+function unsafe_getindex(li::LinearMIndices{T,N,I}, i::NTuple{N}) where {T,N,I}
     sz = 1
-    out = Expr[]
-    ind = :(i - 1)
-    ax = :()
-    indnext = :()
+    out = zero(T)
     for D in 1:N
         ax = axes(li, D)
         if D == 1
-            #out = :(first(subinds, $D) + (i[$D] - firstindex(subinds, $D)) * step(subinds, $D))
+            out = _inds2idx(ax, i[D])
         else
-            out += (sz * (first(ax) + (i[D] - firstindex(subinds)) * step(ax) - SOne))
+            out = out + _inds2idx(ax, sz, i[D])
         end
         sz *= size(li, D)
     end
     return out
 end
+
+_inds2idx(ax::UnitSRange{T,B}, i::Integer) where {T,B} = i
+_inds2idx(ax::UnitSRange{T,B}, sz::Int, i::Integer) where {T,B} = sz * (values(B)::T + i - 2)
+
+_inds2idx(ax::AbstractRange, i::Integer) = first(ax) + i - first(ax) * step(ax)
+_inds2idx(ax::AbstractRange, sz::Int, i::Integer) = sz * (first(ax) + (i -firstindex(ax)) * step(ax) - 1)
 
 @generated function unsafe_getindex(li::LinearSIndices{T,N,I,L}, i::NTuple{N}) where {T,N,I,L}
     sz = 1
@@ -217,9 +272,6 @@ function unsafe_getindex(inds::CartesianMIndices{T,N,I}, i::Tuple) where {T,N,I}
     map(getindex, axes(inds), i)::T
 end
 
-@generated function unsafe_getindex(inds::CartesianSIndices{T,N,I}, i::Tuple)::T where {T,N,I}
-    ax = axes(inds)
-    :(map(getindex, $ax, i))
+@inline function unsafe_getindex(inds::CartesianSIndices{T,N,I}, i::Tuple)::T where {T,N,I}
+    map(getindex, axes(inds), i)::T
 end
-
-

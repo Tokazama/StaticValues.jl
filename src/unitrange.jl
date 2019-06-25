@@ -43,6 +43,14 @@ UnitMRange{T}(start::B, stop::T) where {T<:BaseInteger,B<:SInteger} =
 UnitMRange{T}(start::T, stop::E) where {T<:BaseInteger,E<:SInteger} =
    UnitMRange{T,T,E}(start, ifelse(stop >= start, stop, ofeltype(T,start-oneunit(stop - start))))
 
+UnitMRange{T}(start::T, stop::T) where T =
+    UnitMRange{T,T,T}(start, ifelse(stop >= start, stop, ofeltype(T,start-oneunit(stop - start))))
+
+function UnitMRange(start::B, stop::E) where {B,E}
+    T = Base.promote_eltype(B, E)
+    UnitMRange{T}(ofeltype(T, start), ofeltype(T, stop))
+end
+
 function UnitMRange{T}(start::B, stop::T) where {T,B<:SReal}
     if stop >= start
         UnitMRange{T,B,T}(start, ofeltype(T, start + floor(stop - start)))
