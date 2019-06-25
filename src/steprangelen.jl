@@ -20,8 +20,8 @@ abstract type StaticStepRangeLen{T,R,S,E,L,F} <: StaticOrdinalRange{T,R,S,E,L} e
 "StepSRangeLen - Static parametric type variant of StaticStepRangeLen"
 struct StepSRangeLen{T,R,S,E,L,F} <: StaticStepRangeLen{T,R,S,E,L,F}
     function StepSRangeLen{T,R,S,E,L,F}() where {T,R,S,E,L,F}
-        L() >= 0 || throw(ArgumentError("StepSRangeLen: length cannot be negative, got $(values(L))"))
-        1 <= F() <= max(1, L()) || throw(ArgumentError("StaticStepRangeLen: offset must be in [1,$(values(L))], got $offset"))
+        values(L) >= 0 || throw(ArgumentError("StepSRangeLen: length cannot be negative, got $(values(L))"))
+        1 <= values(F) <= max(1, values(L)) || throw(ArgumentError("StaticStepRangeLen: offset must be in [1,$(values(L))], got $offset"))
         new{eltype(T),R,S,E,L,F}()  # ensure that T <: BaseType
     end
 end
@@ -127,3 +127,18 @@ end
 end
 
 
+@inline function Base.iterate(r::StepSRangeLen{T,R,S,E,L,F}) where {T,R,S,E,L,F}
+    if values(L) < 1
+        return nothing
+    else
+        return (unsafe_getindex(r, 1)::T, 1)::Tuple{T,Int}
+    end
+end
+
+@inline function Base.iterate(r::StepSRangeLen{T,R,S,E,L,F}, i::Int) where {T,R,S,E,L,F}
+    if i < values(L)
+        return (unsafe_getindex(r, i+1), i + 1)::Tuple{T,Int}
+    else
+        return nothing
+    end
+end

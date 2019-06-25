@@ -65,13 +65,6 @@ end
     ofeltype(T, reference(r) + (i - offset(r)) * step(r))
 end
 
-# TODO: inferrence errors
-@inline function Base.iterate(r::Union{StaticLinRange,StaticStepRangeLen}, i::Integer=firstindex(r))
-    Base.@_inline_meta
-    length(r) < i && return nothing
-    unsafe_getindex(r, i), i + one(i)
-end
-
 # TODO: just for ordinal range in base, make sure it doesn't do anything crazy
 Base.iterate(r::StaticRange) = isempty(r) ? nothing : (first(r), first(r))
 
@@ -291,11 +284,12 @@ Base.isempty(r::StaticUnitRange) = first(r) > last(r)
 Base.isempty(r::StaticStepRangeLen) = length(r) == 0
 Base.isempty(r::StaticLinRange) = length(r) == 0
 
-
-==(r::StaticRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
-==(r::StaticRange, s::AbstractRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
-==(r::AbstractRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
-
+Base.map(::Type{T}, r::StaticStepRange) where {T<:Real} = ofeltype(T, first(r)):ofeltype(T, step(r)):ofeltype(T, last(r))
+Base.map(::Type{T}, r::StaticUnitRange) where {T<:Real} = ofeltype(T, first(r)):ofeltype(T, last(r))
+Base.map(::Type{T}, r::StaticStepRangeLen) where {T<:AbstractFloat} =
+    StaticStepRangeLen{T}(ofeltype(T, first(r)), ofeltype(T, step(r)), length(r), offset(r))
+Base.map(::Type{T}, r::StaticLinRange) where T<:AbstractFloat =
+    StaticLinRange{T}(ofeltype(T, first(r)), ofeltype(T, last(r)), length(r))
 
 ==(r::Union{StaticStepRangeLen{T},StaticLinRange{T}}, s::Union{StaticStepRangeLen{T},StaticLinRange{T}}) where T =
     (first(r) == first(s)) & (length(r) == length(s)) & (last(r) == last(s))

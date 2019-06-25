@@ -124,12 +124,23 @@ const OverflowSafe = Union{Bool,Int8,Int16,Int32,Int64,Int128,
 _in_unit_range(v::StaticUnitRange, val, i::Integer) =
     i > 0 && val <= last(v) && val >= first(v)
 
-function getindex(v::StaticUnitRange{T}, i::Integer) where {T<:OverflowSafe}
+function getindex(v::UnitMRange{T}, i::Integer) where {T<:OverflowSafe}
     Base.@_inline_meta
     val = first(v) + (i - one(i))
     @boundscheck _in_unit_range(v, val, i) || Base.throw_boundserror(v, i)
     val % T
 end
+
+function getindex(r::UnitSRange{T,B,E,L}, i::Integer) where {T,B,E,L}
+    Base.@_inline_meta
+    @boundscheck if i < 1 || i > values(L)
+        throw(BoundsError(r, i))
+    end
+    unsafe_getindex(r, T(i))
+end
+
+@pure unsafe_getindex(::UnitSRange{T,B,E,L}, i::T) where {T,B,E,L} = values(B) + i - one(T)
+
 
 function getindex(r::StaticUnitRange, s::Union{AbstractUnitRange{<:Integer},StaticUnitRange{<:Integer}})
     Base.@_inline_meta
@@ -140,6 +151,39 @@ function getindex(r::StaticUnitRange, s::Union{AbstractUnitRange{<:Integer},Stat
         return range(st, length=SInteger(length(s)))
     else
         return range(st, length=length(s))
+    end
+end
+
+@pure Base.checkindex(::Type{Bool}, r::UnitSRange{T,B,E,L}, i::Real) where {T,B,E,L} =
+    SOne <= i && i <= L()::L
+
+@inline Base.checkindex(::Type{Bool}, r::UnitSRange{T,B,E,L}, i::AbstractRange) where {T,B,E,L} =
+    checkindex(Bool, r, first(i)) && checkindex(Bool, r, last(i))
+
+function Base.checkindex(::Type{Bool}, inds::StaticUnitRange{T,B,E,L}, i::Real) where {T,B,E,L}
+    Base.@_inline_meta
+    _checkfirst(first(inds)::B, i) & _checklast(last(inds)::E, i)
+end
+
+_checkfirst(b::BaseReal, i::Real) = b <= i
+@pure _checkfirst(::B, i::Real) where B<:SReal = values(B) <= i
+
+_checklast(l::BaseReal, i::Real) = i <= l
+@pure _checklast(::L, i::Real) where L<:SReal = i <= values(L)
+
+@pure function Base.iterate(r::UnitSRange{T,B,E,L}) where {T,B,E,L}
+    if values(L) < 1
+        return nothing
+    else
+        return (values(B)::T, values(B)::T)::Tuple{T,T}
+    end
+end
+
+@inline function Base.iterate(r::UnitSRange{T,B,E,L}, i::T) where {T,B,E,L}
+    if i < values(E)::T
+        return (i + one(T), i + one(T))::Tuple{T,T}
+    else
+        return nothing
     end
 end
 

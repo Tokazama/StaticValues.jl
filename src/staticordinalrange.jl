@@ -33,5 +33,5 @@ function length(r::StaticOrdinalRange{T,B,S,E,Dynamic}) where {T,B,S,E}
     isempty(r) ? zero(n) : n
 end
 
-showrange(io::IO, r::StaticOrdinalRange) = print(io, "$(first(r)):$(step(r)):$(last(r)) \t (static)")
+showrange(io::IO, r::StaticOrdinalRange) = print(io, "$(first(r)):$(step(r)):$(last(r))")
 

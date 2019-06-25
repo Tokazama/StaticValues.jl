@@ -145,4 +145,25 @@ Base.StepRange(r::StaticUnitRange) = UnitRange(values(first(r)), values(last(r))
 #UnitSRange(r::UnitRange{T}) where T = UnitSRange{T}(SVal(first(r)), SVal(last(r)))
 #UnitMRange(r::UnitRange{T}) where T = UnitSRange{T}(first(r), last(r))
 
+@pure Base.checkindex(::Type{Bool}, r::StepSRange{T,B,S,E,L}, i::Real) where {T,B,S,E,L} =
+    SOne <= i && i <= L()::L
+
+Base.checkindex(::Type{Bool}, r::StepSRange{T,B,S,E,L}, i::AbstractRange) where {T,B,S,E,L} =
+    checkindex(Bool, r, first(i)) && checkindex(Bool, r, last(i))
+
+@pure function Base.iterate(r::StepSRange{T,B,S,E,L}) where {T,B,S,E,L}
+    if values(L) < 1
+        return nothing
+    else
+        return (values(B)::T, values(B)::T)::Tuple{T,T}
+    end
+end
+
+@inline function Base.iterate(r::StepSRange{T,B,S,E,L}, i::T) where {T,B,S,E,L}
+    if i < values(E)::T
+        return (i + values(S)::T, i + values(S)::T)::Tuple{T,T}
+    else
+        return nothing
+    end
+end
 

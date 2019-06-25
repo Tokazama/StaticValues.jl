@@ -18,9 +18,6 @@ struct LinSRange{T,B,S,E,L,D} <: StaticLinRange{T,B,S,E,L,D}
     LinSRange{T}(start::B, step::S, stop::E, len::L, lendiv::D) where {T,B,S,E,L,D} = new{T,B,S,E,L,D}()
 end
 
-isstatic(::LinSRange) = true
-isstatic(::Type{<:LinSRange}) = true
-
 LinSRange{T}(start::B, stop::E, len::L) where {T,B,E,L} =
     LinSRange{T}(start, stop, len, max(len-SOne, SOne))
 LinSRange{T}(start::B, stop::E, len::L, lendiv::D) where {T,B,E,L,D} =
@@ -49,6 +46,9 @@ length(r::LinMRange{T,B,E,<:BaseInteger}) where {T,B,E} = getfield(r, :len)
 length!(r::LinMRange{T,B,E,L}, len::L) where {T,B,E,L<:BaseNumber} = setfield!(r, :len, len)
 
 lendiv(r::LinMRange) = max(length(r)-SOne, SOne)
+
+isstatic(::LinSRange) = true
+isstatic(::Type{<:LinSRange}) = true
 
 isstatic(::LinMRange) = false
 isstatic(::Type{<:LinMRange}) = false
@@ -112,3 +112,24 @@ for (S,B) in S2B
     end
 end
 
+@inline function Base.iterate(r::LinSRange{T,B,S,E,L,D}) where {T,B,S,E,L,D}
+    if values(L) < 1
+        return nothing
+    else
+        return (unsafe_getindex(r, 1)::T, 1)::Tuple{T,Int}
+    end
+end
+
+@inline function Base.iterate(r::LinSRange{T,B,S,E,L,D}, i::Int) where {T,B,S,E,L,D}
+    if i < values(L)
+        return (unsafe_getindex(r, i), i + 1)::Tuple{T,Int}
+    else
+        return nothing
+    end
+end
+
+
+#= TODO
+function Base.iterate(r::LinSRange, i::Int=1)
+end
+=#

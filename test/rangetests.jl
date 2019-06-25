@@ -67,7 +67,7 @@ end
     @test isempty(intersect(SVal(13):SVal(-2):SOne, SVal(8):SVal(-2)))
     #@test intersect(5+0*(1:4), 2:8) == 5+0*(1:4)
     #@test isempty(intersect(5+0*(1:4), -7:3))
-    @test intersect(SZero:SVal(3):SVal(24), SVal(0):SVal(4):SVal(24)) == 0:12:24
+    @test intersect(SZero:SVal(3):SVal(24), SZero:SVal(4):SVal(24)) == 0:12:24
     @test intersect(SZero:SVal(4):SVal(24), SZero:SVal(3):SVal(24)) == 0:12:24
     @test intersect(SZero:SVal(3):SVal(24), SVal(24):SVal(-4):SZero) == 0:12:24
     @test intersect(SVal(24):SVal(-3):SZero, SZero:SVal(4):SVal(24)) == 24:-12:0

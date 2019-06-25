@@ -39,5 +39,15 @@ function _in_range(x, r::StaticRange)
     end
 end
 
+Base.checkindex(::Type{Bool}, inds::StaticRange, ::Base.Colon) = true
+Base.checkindex(::Type{Bool}, inds::StaticRange, ::Base.Slice) = true
+
+# TODO: is this redundant with Base./range/line#716
+==(r::StaticRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+==(r::StaticRange, s::AbstractRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+==(r::AbstractRange, s::StaticRange) = (first(r) == first(s)) & (step(r) == step(s)) & (last(r) == last(s))
+
+
 Base.show(io::IO, r::StaticRange) = showrange(io, r)
 Base.show(io::IO, ::MIME"text/plain", r::StaticRange) = showrange(io, r)
+

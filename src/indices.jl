@@ -46,10 +46,13 @@ end
 """
     StaticLinearIndices
 
-Indexing returns a single value
+Indexing returns a single value.
 """
 abstract type StaticLinearIndices{T,N,I,L} <: AbstractIndices{T,N,I,L} end
 
+"""
+    LinearSIndices
+"""
 struct LinearSIndices{T,N,I,L} <: StaticLinearIndices{T,N,I,L} end
 
 LinearSIndices(inds::Vararg{<:SRange,N}) where N = LinearSIndices(inds)
@@ -58,6 +61,9 @@ function LinearSIndices(inds::Tuple{Vararg{<:SRange,N}}) where N
     LinearSIndices{typejoin(_axeltype(inds)...),N,typeof(inds),_axlength(inds)}()
 end
 
+"""
+    LinearMIndices
+"""
 mutable struct LinearMIndices{T,N,I} <: StaticLinearIndices{T,N,I,Dynamic}
     indices::I
 end
@@ -79,7 +85,6 @@ Base.axes(inds::MIndices) = inds.indices
 @inline Base.axes(inds::AbstractIndices, i::Int) = axes(inds)[i]
 @inline Base.axes(inds::Type{<:SIndices}, i::Int) = axes(inds)[i]
 @inline Base.axes(inds::AbstractIndices, i::SInt{I}) where I = axes(inds)[I]
-
 
 @inline Base.size(inds::AbstractIndices, i::Int) = length(axes(inds, i))::Int
 
@@ -207,7 +212,14 @@ function getindex(inds::StaticCartesianIndices{T,N,I,L}, i...) where {T,N,I,L}
     @inbounds unsafe_getindex(inds, i)
 end
 
-function unsafe_getindex(inds::StaticCartesianIndices{T,N,I}, i::Tuple) where {T,N,I}
+function unsafe_getindex(inds::CartesianMIndices{T,N,I}, i::Tuple) where {T,N,I}
     Base.@_inline_meta
     map(getindex, axes(inds), i)::T
 end
+
+@generated function unsafe_getindex(inds::CartesianSIndices{T,N,I}, i::Tuple)::T where {T,N,I}
+    ax = axes(inds)
+    :(map(getindex, $ax, i))
+end
+
+
